@@ -1,0 +1,49 @@
+plugins {
+    id 'com.android.application'
+}
+
+def releaseStorePath = System.getenv('CAMPUS_SIGN_STORE')
+def releaseStorePassword = System.getenv('CAMPUS_SIGN_STORE_PASSWORD')
+def releaseKeyAlias = System.getenv('CAMPUS_SIGN_KEY_ALIAS')
+def releaseKeyPassword = System.getenv('CAMPUS_SIGN_KEY_PASSWORD')
+
+android {
+    namespace 'com.campuslogin.app'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.campuslogin.app"
+        minSdk 24
+        targetSdk 34
+        versionCode 3
+        versionName "1.0.2"
+    }
+
+    signingConfigs {
+        release {
+            if (releaseStorePath && releaseStorePassword && releaseKeyAlias && releaseKeyPassword) {
+                storeFile file(releaseStorePath)
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            if (releaseStorePath && releaseStorePassword && releaseKeyAlias && releaseKeyPassword) {
+                signingConfig signingConfigs.release
+            }
+        }
+        debug {
+            signingConfig signingConfigs.release
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}

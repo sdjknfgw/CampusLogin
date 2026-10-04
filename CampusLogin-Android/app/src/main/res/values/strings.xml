@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">校园网登录</string>
+
+    <string-array name="carrier_labels">
+        <item>自动检测（从在线账号学习）</item>
+        <item>校园用户（无后缀）</item>
+        <item>中国移动 @cmcc</item>
+        <item>校园电信 @dx</item>
+        <item>校园联通 @lt</item>
+        <item>自定义后缀</item>
+    </string-array>
+
+    <string name="hint_account">学号（如 26250102，可含后缀）</string>
+    <string name="hint_password">密码</string>
+    <string name="hint_custom_suffix">自定义后缀（如 @cmcc）</string>
+    <string name="btn_save">保存配置</string>
+    <string name="btn_login">立即登录</string>
+    <string name="btn_logout">注销</string>
+    <string name="btn_start">启动自动引擎</string>
+    <string name="btn_stop">停止引擎</string>
+    <string name="sw_auto_login">断线自动重连</string>
+    <string name="sw_boot_start">开机自动启动</string>
+    <string name="section_config">账号配置</string>
+    <string name="section_engine">自动引擎</string>
+    <string name="section_log">运行日志</string>
+</resources>

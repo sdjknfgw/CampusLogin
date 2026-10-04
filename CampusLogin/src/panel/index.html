@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CampusLogin</title>
+<style>
+  :root {
+    --bg: #f2f0e9;
+    --panel: rgba(255, 255, 255, 0.86);
+    --stroke: rgba(32, 53, 45, 0.12);
+    --neon-cyan: #246b57;
+    --neon-green: #27845e;
+    --neon-red: #c44e42;
+    --neon-yellow: #b57922;
+    --text: #1f302a;
+    --dim: #738079;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+  body {
+    font-family: 'Plus Jakarta Sans', 'Microsoft YaHei', sans-serif;
+    background:
+      radial-gradient(ellipse 600px 300px at 20% -10%, rgba(79, 139, 105, 0.14), transparent),
+      radial-gradient(ellipse 500px 280px at 95% 5%, rgba(208, 166, 94, 0.12), transparent),
+      var(--bg);
+    color: var(--text);
+    height: 100vh; overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+
+  /* ---- 标题栏 ---- */
+  .titlebar {
+    -webkit-app-region: drag;
+    display: flex; align-items: center; gap: 10px;
+    padding: 14px 18px 10px;
+  }
+  .logo { width: 22px; height: 22px; border-radius: 50%;
+    background: conic-gradient(from 200deg, #e8b653, #27845e);
+    box-shadow: 0 4px 12px rgba(39, 132, 94, 0.25); position: relative; }
+  .logo::after { content: '⚡'; position: absolute; inset: 0; display: grid; place-items: center; font-size: 11px; color: #04121a; }
+  .title { font-weight: 800; font-size: 15px; letter-spacing: 1px; }
+  .title small { color: var(--dim); font-weight: 400; margin-left: 6px; font-size: 11px; }
+  .spacer { flex: 1; }
+  .winbtn {
+    -webkit-app-region: no-drag; width: 28px; height: 28px; border: 1px solid var(--stroke);
+    background: rgba(255,255,255,0.03); color: var(--dim); border-radius: 8px;
+    cursor: pointer; font-size: 13px; line-height: 1;
+  }
+  .winbtn:hover { color: var(--text); border-color: var(--neon-cyan); box-shadow: 0 0 8px rgba(0,230,255,0.25); }
+
+  .content { flex: 1; padding: 2px 18px 16px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
+  .content::-webkit-scrollbar { width: 4px; }
+  .content::-webkit-scrollbar-thumb { background: rgba(0,230,255,0.2); border-radius: 2px; }
+
+  /* ---- 状态卡 ---- */
+  .statuscard {
+    border: 1px solid var(--stroke); border-radius: 18px;
+    background: linear-gradient(135deg, rgba(255,255,255,.95), rgba(246,248,241,.86)); backdrop-filter: blur(12px);
+    padding: 14px 16px; display: flex; align-items: center; gap: 14px;
+  }
+  .led { width: 14px; height: 14px; border-radius: 50%; position: relative; flex-shrink: 0; }
+  .led::after { content:''; position:absolute; inset:-5px; border-radius:50%; opacity:.35; animation: pulse 2s infinite; }
+  .led.online  { background: var(--neon-green); box-shadow: 0 0 10px var(--neon-green); }
+  .led.online::after { background: var(--neon-green); }
+  .led.busy    { background: var(--neon-yellow); box-shadow: 0 0 10px var(--neon-yellow); }
+  .led.busy::after { background: var(--neon-yellow); }
+  .led.error   { background: var(--neon-red); box-shadow: 0 0 10px var(--neon-red); }
+  .led.error::after { background: var(--neon-red); }
+  .led.offline { background: #55627a; box-shadow: 0 0 8px rgba(85,98,122,0.8); }
+  .led.offline::after { background: #55627a; }
+  .led.idle    { background: #39445c; }
+  .led.idle::after { background: transparent; animation: none; }
+  @keyframes pulse { 0%,100% { transform: scale(0.7); opacity:.35 } 50% { transform: scale(1.15); opacity:.12 } }
+  .statustext { font-size: 16px; font-weight: 800; }
+  .statussub { font-size: 11px; color: var(--dim); margin-top: 2px; font-family: 'JetBrains Mono', monospace; }
+
+  /* ---- 表单 ---- */
+  .card {
+    border: 1px solid var(--stroke); border-radius: 16px;
+    background: var(--panel); backdrop-filter: blur(12px);
+    padding: 14px 16px;
+    box-shadow: 0 5px 18px rgba(40, 54, 45, .045);
+  }
+  .field { margin-bottom: 12px; }
+  .field label { display: block; font-size: 11px; color: var(--dim); margin-bottom: 6px; letter-spacing: 1px; }
+  .inputwrap { position: relative; display: flex; align-items: center; }
+  input[type=text], input[type=password], select {
+    width: 100%; padding: 10px 12px;
+    background: #f8f8f4;
+    border: 1px solid rgba(67, 88, 76, 0.18); border-radius: 10px;
+    color: var(--text); font-size: 13px; outline: none;
+    font-family: 'JetBrains Mono', monospace;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  input:focus, select:focus { border-color: var(--neon-cyan); box-shadow: 0 0 0 3px rgba(0,230,255,0.12), 0 0 12px rgba(0,230,255,0.15); }
+  select { appearance: none; cursor: pointer; font-family: 'Plus Jakarta Sans', sans-serif; }
+  .eye { position: absolute; right: 10px; background: none; border: none; color: var(--dim); cursor: pointer; font-size: 14px; }
+  .eye:hover { color: var(--neon-cyan); }
+  .suffixhint { font-size: 10px; color: var(--dim); margin-top: 5px; }
+  .suffixhint b { color: var(--neon-cyan); font-weight: 600; }
+
+  .btnrow { display: flex; gap: 10px; margin-top: 2px; }
+  .btn {
+    flex: 1; padding: 11px 0; border-radius: 10px; border: none;
+    font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 800; font-size: 13px;
+    cursor: pointer; letter-spacing: 1px; transition: all .2s;
+  }
+  .btn-test { background: #eff4ef; color: var(--neon-cyan); border: 1px solid rgba(36,107,87,0.22); }
+  .btn-test:hover { background: #e5eee7; box-shadow: 0 5px 14px rgba(36,107,87,0.12); }
+  .btn-save { background: linear-gradient(135deg, #246b57, #358b67); color: #fff; border: 1px solid transparent; }
+  .btn-save:hover { box-shadow: 0 6px 18px rgba(39,132,94,0.24); }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  /* ---- 开关 ---- */
+  .togglerow { display: flex; align-items: center; padding: 7px 0; }
+  .togglerow span { font-size: 12.5px; }
+  .togglerow .desc { color: var(--dim); font-size: 10px; margin-left: 8px; }
+  .switch { margin-left: auto; width: 38px; height: 20px; border-radius: 10px; background: #232c3f; border: 1px solid rgba(123,138,160,0.3); position: relative; cursor: pointer; transition: background .2s; }
+  .switch::after { content:''; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #8b99b0; transition: all .2s; }
+  .switch.on { background: rgba(0,230,140,0.25); border-color: var(--neon-green); }
+  .switch.on::after { left: 20px; background: var(--neon-green); box-shadow: 0 0 8px var(--neon-green); }
+
+  /* ---- 日志 ---- */
+  .logbox {
+    background: #f7f8f3; border: 1px solid rgba(32,53,45,0.10);
+    border-radius: 10px; padding: 10px 12px;
+    font-family: 'JetBrains Mono', monospace; font-size: 10.5px;
+    height: 118px; overflow-y: auto; line-height: 1.75;
+  }
+  .logbox::-webkit-scrollbar { width: 3px; }
+  .logbox::-webkit-scrollbar-thumb { background: rgba(0,230,255,0.25); }
+  .log-info { color: #3b8064; }
+  .log-warn { color: #a66b1b; }
+  .log-error { color: var(--neon-red); }
+  .log-time { color: #9aa39d; margin-right: 6px; }
+
+  .toast {
+    position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%) translateY(20px);
+    padding: 9px 18px; border-radius: 10px; font-size: 12px; font-weight: 600;
+    background: rgba(255, 255, 252, 0.98); border: 1px solid var(--neon-cyan);
+    color: var(--neon-cyan); box-shadow: 0 0 18px rgba(0,230,255,0.3);
+    opacity: 0; transition: all .25s; pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast.ok { border-color: var(--neon-green); color: var(--neon-green); box-shadow: 0 0 18px rgba(0,230,140,0.3); }
+  .toast.err { border-color: var(--neon-red); color: var(--neon-red); box-shadow: 0 0 18px rgba(255,70,92,0.3); }
+
+  /* ---- 档案列表 ---- */
+  .pitem {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 10px; border-radius: 10px; margin-bottom: 6px;
+    background: rgba(248, 249, 245, 0.8); border: 1px solid rgba(67, 88, 76, 0.14);
+  }
+  .pitem.active { border-color: rgba(0, 230, 140, 0.45); background: rgba(0, 230, 140, 0.06); }
+  .pitem .pdot { width: 8px; height: 8px; border-radius: 50%; flex-shrone: 0; background: #39445c; }
+  .pitem.active .pdot { background: var(--neon-green); box-shadow: 0 0 8px var(--neon-green); }
+  .pitem .pinfo { flex: 1; min-width: 0; }
+  .pitem .pname { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pitem .psub { font-size: 10px; color: var(--dim); font-family: 'JetBrains Mono', monospace; margin-top: 1px; }
+  .pitem .pdel { background: none; border: none; color: var(--dim); cursor: pointer; font-size: 12px; padding: 4px 6px; border-radius: 6px; }
+  .pitem .pdel:hover { color: var(--neon-red); background: rgba(255, 70, 92, 0.1); }
+  .pitem .puse { background:#e6f0e9; border:1px solid rgba(36,107,87,.2); color:var(--neon-cyan); cursor:pointer; font-size:10px; padding:4px 6px; border-radius:6px; }
+  .pitem .puse:hover { background:#dcebe1; }
+  .pempty { font-size: 11px; color: var(--dim); line-height: 1.7; }
+  .title { letter-spacing: .3px; }
+  .content { scrollbar-color: rgba(36,107,87,.25) transparent; }
+  .update-overlay { display:none; position:fixed; inset:0; z-index:20; padding:20px; background:rgba(18,31,25,.38); align-items:center; justify-content:center; }
+  .update-overlay.show { display:flex; }
+  .update-dialog { width:min(390px, 100%); padding:20px; border:1px solid var(--stroke); border-radius:18px; background:#fffefa; box-shadow:0 18px 60px rgba(20,40,28,.24); }
+  .update-dialog h2 { font-size:18px; margin-bottom:7px; }
+  .update-version { color:var(--neon-cyan); font-weight:700; font-size:13px; }
+  .update-notes { white-space:pre-wrap; overflow:auto; max-height:250px; margin:12px 0 16px; color:#526159; font:12px/1.65 'Microsoft YaHei',sans-serif; }
+  .update-actions { display:flex; gap:8px; }
+  .update-actions button { padding:9px 12px; border-radius:9px; cursor:pointer; }
+  .update-close { border:1px solid var(--stroke); background:#f3f5f0; color:var(--text); }
+  .update-open { border:0; background:#246b57; color:#fff; font-weight:700; }
+</style>
+</head>
+<body>
+  <div class="titlebar">
+    <div class="logo"></div>
+    <div class="title">CampusLogin<small>校园网自动认证</small></div>
+    <div class="spacer"></div>
+    <button class="winbtn" id="btnUpdate" title="检查软件更新" style="width:auto;padding:0 9px;font-size:10px;">检查更新</button>
+    <button class="winbtn" id="btnMin">─</button>
+    <button class="winbtn" id="btnClose">✕</button>
+  </div>
+
+  <div class="content">
+    <div class="statuscard">
+      <div class="led idle" id="led"></div>
+      <div>
+        <div class="statustext" id="statusText">加载中…</div>
+        <div class="statussub" id="statusSub"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="field">
+        <label>学号</label>
+        <input type="text" id="account" placeholder="如 26250102" maxlength="30">
+      </div>
+      <div class="field">
+        <label>密码</label>
+        <div class="inputwrap">
+          <input type="password" id="password" placeholder="校园网认证密码" maxlength="30">
+          <button class="eye" id="btnEye" title="显示/隐藏">👁</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>运营商</label>
+        <select id="carrier"></select>
+        <input type="text" id="customSuffix" placeholder="自定义后缀，如 @cmcc" maxlength="20"
+               style="display:none; margin-top:8px;">
+        <div class="suffixhint" id="suffixHint"></div>
+      </div>
+      <div class="btnrow">
+        <button class="btn btn-test" id="btnTest">▶ 测试登录</button>
+        <button class="btn btn-save" id="btnSave">✓ 保存并启用</button>
+        <button class="btn btn-test" id="btnReauth">⟳ 重连测试</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="togglerow">
+        <span>断线自动重连</span><span class="desc">掉线后指数退避重登，防风控</span>
+        <div class="switch" id="swAuto"></div>
+      </div>
+      <div class="togglerow">
+        <span>开机自启</span><span class="desc">随系统静默启动</span>
+        <div class="switch" id="swStart"></div>
+      </div>
+    </div>
+
+    <!-- 网络档案卡 -->
+    <div class="card" id="profileCard">
+      <div style="display:flex; align-items:center; margin-bottom:8px;">
+        <span style="font-size:11px; color:var(--dim); letter-spacing:1px;">网络档案</span>
+        <div class="spacer"></div>
+        <span id="netInfo" style="font-size:10px; color:var(--dim); font-family:'JetBrains Mono',monospace;"></span>
+      </div>
+      <div id="profileList"></div>
+      <button class="btn btn-test" id="btnWizard" style="width:100%; margin-top:10px;">＋ 新网络登录向导（自动抓包）</button>
+      <div style="display:flex; gap:8px; margin-top:8px;">
+        <input type="text" id="manualHost" placeholder="自动探测失败？手动输门户地址，如 172.19.0.1" maxlength="60"
+               style="flex:1; padding:8px 10px; background:rgba(6,10,18,.8); border:1px solid rgba(123,138,160,.25); border-radius:8px; color:var(--text); font-size:11px; outline:none; font-family:'JetBrains Mono',monospace;">
+        <button class="winbtn" id="btnManualWizard" style="width:auto; padding:0 12px; font-size:10px;" title="用手动地址启动向导">用此地址 ↗</button>
+      </div>
+      <div class="suffixhint" id="wizardHint">连上新 WiFi 后点「新网络登录向导」：在弹出的官方登录页正常登一次，软件自动记住这个网络，下次直接登录。</div>
+    </div>
+
+    <div class="card" style="padding-bottom:10px;">
+      <div style="display:flex; align-items:center; margin-bottom:8px;">
+        <span style="font-size:11px; color:var(--dim); letter-spacing:1px;">运行日志</span>
+        <div class="spacer"></div>
+        <button class="winbtn" id="btnPortal" style="width:auto; padding:0 10px; font-size:10px;" title="打开认证页">门户 ↗</button>
+      </div>
+      <div class="logbox" id="logbox"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <div class="update-overlay" id="updateModal" role="dialog" aria-modal="true" aria-labelledby="updateTitle">
+    <section class="update-dialog">
+      <h2 id="updateTitle">发现新版本</h2>
+      <div class="update-version" id="updateVersion"></div>
+      <pre class="update-notes" id="updateNotes"></pre>
+      <div class="update-actions">
+        <button class="update-close" id="btnUpdateClose">稍后</button>
+        <div class="spacer"></div>
+        <button class="update-open" id="btnUpdateOpen">打开下载页面</button>
+      </div>
+    </section>
+  </div>
+<script src="panel-renderer.js"></script>
+</body>
+</html>

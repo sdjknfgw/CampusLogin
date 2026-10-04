@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<!-- 校园网一键登录 H5（单文件版，无任何外部依赖——未认证时外部 CDN 全被拦，必须内联）
+     协议：Dr.COM(ePortal 4.0) JSONP —— 与 PC 端 Electron / Android 端同源同参序
+     探测 :80/drcom/chkstatus · 登录/注销 :801/eportal/portal/*（明文账号密码）
+     浏览器以 <script> 注入方式跨源调用（JSONP 天然无 CORS 问题）
+     适用：Android 浏览器(file:// 直接打开) / PC 浏览器 / 任何 http:// 托管；
+     iPhone：见页内「iPhone 快捷指令方案」（iOS 本地文件预览会禁 JS 联网，快捷指令是 iOS 唯一稳路径） -->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>校园网一键登录</title>
+<style>
+  :root{
+    --bg:#0A0F1E; --card:#121A2E; --stroke:#22314F; --input:#0D1526;
+    --accent:#22D3EE; --accent-dim:#0E7490; --ok:#34D399; --busy:#FBBF24;
+    --err:#F87171; --text:#E5E7EB; --muted:#8CA0B8; --dark:#06121A;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{
+    background:var(--bg); color:var(--text); min-height:100vh;
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+    padding:16px calc(16px + env(safe-area-inset-left)) calc(24px + env(safe-area-inset-bottom));
+    background-image:radial-gradient(1200px 500px at 50% -10%,rgba(34,211,238,.08),transparent 60%);
+  }
+  .title{font-size:20px;font-weight:700;letter-spacing:.5px}
+  .subtitle{font-size:12px;color:var(--muted);margin-top:2px}
+  .card{background:var(--card);border:1px solid var(--stroke);border-radius:14px;padding:16px;margin-top:12px}
+  .state{font-size:18px;font-weight:700;display:flex;align-items:center;gap:8px}
+  .dot{width:10px;height:10px;border-radius:50%;background:var(--muted);flex:none}
+  .dot.online{background:var(--ok);box-shadow:0 0 10px var(--ok)}
+  .dot.busy{background:var(--busy);box-shadow:0 0 10px var(--busy);animation:pulse 1s infinite}
+  .dot.err{background:var(--err);box-shadow:0 0 10px var(--err)}
+  @keyframes pulse{50%{opacity:.4}}
+  .kv{font-size:13px;color:var(--muted);margin-top:6px;font-family:ui-monospace,Menlo,Consolas,monospace}
+  .kv b{color:var(--text);font-weight:600}
+  .sec{margin-top:18px;margin-bottom:8px;font-size:12px;font-weight:700;color:var(--accent);
+       text-transform:uppercase;letter-spacing:.12em}
+  input,select{
+    width:100%;background:var(--input);border:1px solid var(--stroke);border-radius:10px;
+    padding:12px;color:var(--text);font-size:15px;outline:none;appearance:none;-webkit-appearance:none}
+  input:focus,select:focus{border-color:var(--accent-dim);box-shadow:0 0 0 3px rgba(34,211,238,.12)}
+  label{display:block;font-size:12px;color:var(--muted);margin:12px 0 6px}
+  select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238CA0B8' stroke-width='2' fill='none'/%3E%3C/svg%3E");
+         background-repeat:no-repeat;background-position:right 12px center}
+  .row{display:flex;gap:10px;margin-top:10px}
+  button{
+    flex:1;border:0;border-radius:10px;padding:13px 10px;font-size:15px;font-weight:600;
+    background:var(--input);color:var(--text);cursor:pointer}
+  button:active{transform:scale(.98)}
+  .primary{background:var(--accent);color:var(--dark);box-shadow:0 0 18px rgba(34,211,238,.35)}
+  .ghost{background:transparent;border:1px solid var(--accent-dim)}
+  .danger{color:var(--err);border:1px solid rgba(248,113,113,.4)}
+  button:disabled{opacity:.45;pointer-events:none}
+  details{border:1px solid var(--stroke);border-radius:14px;background:var(--card);margin-top:12px}
+  summary{padding:14px 16px;font-size:14px;font-weight:600;cursor:pointer;color:var(--text);list-style:none}
+  summary::-webkit-details-marker{display:none}
+  summary:after{content:"+";float:right;color:var(--accent);font-weight:700}
+  details[open] summary:after{content:"−"}
+  .inner{padding:0 16px 16px}
+  .log{background:var(--input);border:1px solid var(--stroke);border-radius:10px;padding:12px;
+       font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;color:var(--muted);
+       line-height:1.7;word-break:break-all;max-height:180px;overflow:auto}
+  .log .i{color:var(--ok)} .log .w{color:var(--busy)} .log .e{color:var(--err)}
+  .banner{display:none;background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.4);
+          color:var(--err);border-radius:10px;padding:10px 12px;font-size:12px;margin-top:12px;line-height:1.6}
+  .tip{font-size:11px;color:var(--muted);line-height:1.8;margin-top:10px}
+  .tip b{color:var(--accent)}
+  code{font-family:ui-monospace,Menlo,monospace;color:var(--accent);font-size:11px;word-break:break-all}
+  .copied{color:var(--ok)!important}
+</style>
+</head>
+<body>
+  <div class="title">校园网一键登录</div>
+  <div class="subtitle" id="protoTip">Dr.COM ePortal · JSONP 直连</div>
+
+  <div class="banner" id="httpsBanner">当前页面是 <b>HTTPS</b>，浏览器会拦截到门户的明文请求。<br>请把本文件下载到本地用 <b>file://</b> 打开，或放到 <b>http://</b> 站点上使用。</div>
+
+  <!-- 状态卡 -->
+  <div class="card">
+    <div class="state"><span class="dot" id="dot"></span><span id="stateText">检测中…</span></div>
+    <div class="kv">账号 <b id="kvUid">—</b></div>
+    <div class="kv">IP <b id="kvIp">—</b> · 在线 <b id="kvTime">—</b></div>
+    <div class="kv">后缀 <b id="kvSuffix">—</b></div>
+  </div>
+
+  <!-- 操作 -->
+  <div class="sec">操作</div>
+  <div class="card" style="margin-top:0">
+    <div class="row" style="margin-top:0">
+      <button class="primary" id="btnLogin" onclick="doLogin()">立即登录</button>
+      <button class="ghost" id="btnLogout" onclick="doLogout()">注销</button>
+    </div>
+    <div class="row">
+      <button class="ghost" onclick="probe()">刷新状态</button>
+    </div>
+    <div class="tip">提示：同一校园网账号通常只允许一台终端在线，手机登录会把电脑顶下线（电脑端引擎也会再踢回来），二选一使用。</div>
+  </div>
+
+  <!-- 账号配置 -->
+  <details>
+    <summary>账号配置</summary>
+    <div class="inner">
+      <label>学号</label>
+      <input id="inAccount" placeholder="如 26250102（可含后缀）" autocomplete="off">
+      <label>密码</label>
+      <input id="inPassword" type="password" placeholder="校园网密码" autocomplete="off">
+      <label>运营商</label>
+      <select id="inCarrier" onchange="onCarrierChange()">
+        <option value="auto">自动检测（从在线账号学习）</option>
+        <option value="campus">校园用户（无后缀）</option>
+        <option value="cmcc">中国移动 @cmcc</option>
+        <option value="dx">校园电信 @dx</option>
+        <option value="lt">校园联通 @lt</option>
+        <option value="custom">自定义后缀</option>
+      </select>
+      <div id="customWrap" style="display:none">
+        <label>自定义后缀</label>
+        <input id="inCustom" placeholder="如 @cmcc" autocomplete="off">
+      </div>
+      <div class="row"><button class="primary" onclick="saveConfig()">保存配置</button></div>
+    </div>
+  </details>
+
+  <!-- iPhone 方案 -->
+  <details>
+    <summary>iPhone 使用方案（快捷指令）</summary>
+    <div class="inner">
+      <div class="tip">
+        iPhone 的本地文件预览/HTTPS 页面无法向 <code>http://172.19.0.1</code> 发请求，
+        <b>iOS 上最稳的成功案例是「快捷指令」</b>：原生支持 HTTP 局域网地址，还能设置
+        「连上校园网 Wi-Fi 时自动运行」。<br><br>
+        <b>三步设置：</b><br>
+        ① 先在上面填好账号并保存，点下面的按钮复制你的专属登录链接；<br>
+        ② 快捷指令 App → 新建快捷指令 → 添加动作 <code>获取 URL 内容</code>，粘贴该链接（URL 一栏直接粘贴整串），运行测试；<br>
+        ③ 底部「自动化」→ 新建 → 「接入无线局域网」选校园网 SSID → 运行该快捷指令（关闭「运行前询问」即可全自动）。<br><br>
+        探测在线状态可用：<code id="chkUrl">http://172.19.0.1/drcom/chkstatus</code>
+      </div>
+      <div class="row">
+        <button class="primary" id="btnCopy" onclick="copyLoginUrl()">复制我的登录链接</button>
+      </div>
+    </div>
+  </details>
+
+  <!-- 日志 -->
+  <div class="sec">运行日志</div>
+  <div class="log" id="log">—</div>
+
+<script>
+"use strict";
+/* ============ 常量（与 PC/Android 端完全一致） ============ */
+var HOST = "172.19.0.1";
+var CARRIERS = { campus:"", cmcc:"@cmcc", dx:"@dx", lt:"@lt" };
+var PORTAL_TIP = "未认证";
+
+/* ============ 配置（localStorage） ============ */
+function cfg(){
+  return {
+    account:  localStorage.getItem("cl_account")  || "",
+    password: localStorage.getItem("cl_password") || "",
+    carrier:  localStorage.getItem("cl_carrier")  || "campus",
+    custom:   localStorage.getItem("cl_custom")   || "",
+    learned:  localStorage.getItem("cl_learned")  || ""
+  };
+}
+function setCfg(k,v){ localStorage.setItem("cl_"+k, v); }
+function resolveSuffix(c){
+  if(c.carrier==="auto")   return c.learned;
+  if(c.carrier==="custom") return c.custom;
+  return CARRIERS[c.carrier] || "";
+}
+function fullAccount(){
+  var c = cfg(), sfx = resolveSuffix(c);
+  if(!sfx) return c.account;
+  return c.account.toLowerCase().slice(-sfx.length) === sfx.toLowerCase() ? c.account : c.account + sfx;
+}
+function loadConfigToUi(){
+  var c = cfg();
+  el("inAccount").value = c.account;
+  el("inPassword").value = c.password;
+  el("inCarrier").value = c.carrier;
+  el("inCustom").value = c.custom;
+  onCarrierChange();
+}
+function saveConfig(){
+  var a = el("inAccount").value.trim(), p = el("inPassword").value;
+  if(!a){ toast("请输入学号"); return; }
+  if(!p){ toast("密码不能为空"); return; }
+  setCfg("account", a); setCfg("password", p);
+  setCfg("carrier", el("inCarrier").value);
+  setCfg("custom", el("inCustom").value.trim());
+  log("info","配置已保存（登录账号 " + fullAccount() + "）");
+  probe();
+}
+
+/* ============ JSONP（脚本注入，无 CORS 限制） ============ */
+/* ============ 传输层（实测选型 2026-09-06） ============
+   :80 chkstatus 带 ACAO:* → fetch CORS 完全可读；
+   :801 login/logout 无 CORS 头 → script JSONP 可用；
+   Chrome 对 :80 的 script 注入会 ERR_BLOCKED_BY_ORB，故统一「fetch 优先、JSONP 兜底」 */
+function parseJsonp(text){
+  var s = text.indexOf("("), e = text.lastIndexOf(")");
+  if(s < 0 || e <= s) throw new Error("非 JSONP 响应");
+  return JSON.parse(text.slice(s + 1, e));
+}
+function httpJson(url){
+  return fetch(url.replace("__CB__", "f"), { cache: "no-store" })
+    .then(function(r){ return r.text(); })
+    .then(function(t){ return parseJsonp(t); })
+    .catch(function(){ return jsonp(url); }); /* fetch 失败(含 :801 无 CORS 头) → JSONP */
+}
+var JSONP_SEQ = 0;
+function jsonp(url, timeout){
+  timeout = timeout || 8000;
+  return new Promise(function(resolve, reject){
+    var cb = "clJsonp" + Date.now() + "_" + (++JSONP_SEQ);
+    var full = url.replace("__CB__", cb);
+    var s = document.createElement("script");
+    var timer = setTimeout(function(){ cleanup(); reject(new Error("超时/门户不可达")); }, timeout);
+    window[cb] = function(data){ clearTimeout(timer); cleanup(); resolve(data); };
+    function cleanup(){ try{ delete window[cb]; }catch(e){ window[cb]=undefined; } if(s.parentNode) s.parentNode.removeChild(s); }
+    s.onerror = function(){ clearTimeout(timer); cleanup(); reject(new Error("网络错误")); };
+    s.src = full;
+    document.head.appendChild(s);
+  });
+}
+/* 参数顺序敏感：callback 必须第一、lang 最后（老内核校验，顺序错返回 400） */
+function chkUrl(){
+  return "http://" + HOST + "/drcom/chkstatus?callback=__CB__&v=" + (Date.now() + Math.floor(Math.random()*1000)) + "&lang=zh";
+}
+function loginUrl(){
+  var c = cfg();
+  var q = {
+    login_method: "1",
+    user_account: fullAccount(),
+    user_password: c.password,
+    wlan_user_ip: "",            /* 内核按来源 IP 识别（M1 已验证），浏览器拿不到本机 IP，留空即可 */
+    wlan_user_ipv6: "",
+    wlan_user_mac: "000000000000",
+    wlan_ac_ip: "",
+    wlan_ac_name: "",
+    jsVersion: "4.1.3",
+    terminal_type: "1",
+    v: String(Date.now() + Math.floor(Math.random()*1000))
+  };
+  var parts = ["callback=__CB__"];
+  for(var k in q) parts.push(encodeURIComponent(k) + "=" + encodeURIComponent(q[k]));
+  parts.push("lang=" + encodeURIComponent("zh-cn"));
+  return "http://" + HOST + ":801/eportal/portal/login?" + parts.join("&");
+}
+function logoutUrl(){
+  return "http://" + HOST + ":801/eportal/portal/logout?callback=__CB__&v=" + Date.now() + "&lang=zh-cn";
+}
+/* 供 iPhone 快捷指令直接 GET 的整串登录链接 */
+function plainLoginUrl(){
+  return loginUrl().replace("callback=__CB__&", "callback=dr1003&");
+}
+
+/* ============ 状态机 ============ */
+var busy = false;
+function setState(cls, text){
+  el("dot").className = "dot" + (cls ? " " + cls : "");
+  el("stateText").textContent = text;
+}
+function probe(){
+  if(location.protocol === "https:") el("httpsBanner").style.display = "block";
+  setState("busy", "检测中…");
+  jsonp(chkUrl()).then(function(j){
+    if(j.result === 1){
+      var uid = j.uid || "";
+      learnSuffix(uid);
+      el("kvUid").textContent = uid;
+      el("kvIp").textContent = j.v46ip || "—";
+      el("kvTime").textContent = fmtTime(j.oltime || 0);
+      setState("online", "在线");
+    }else{
+      el("kvUid").textContent = "—"; el("kvIp").textContent = "—"; el("kvTime").textContent = "—";
+      setState("", PORTAL_TIP);
+    }
+    el("kvSuffix").textContent = suffixText();
+  }).catch(function(e){
+    el("kvUid").textContent = "—"; el("kvIp").textContent = "—"; el("kvTime").textContent = "—";
+    setState("err", "门户不可达");
+    el("kvSuffix").textContent = suffixText();
+  });
+}
+function learnSuffix(uid){
+  var c = cfg();
+  if(!uid || !c.account) return;
+  if(uid.toLowerCase().indexOf(c.account.toLowerCase()) === 0){
+    var sfx = uid.slice(c.account.length);
+    if(sfx !== c.learned){ setCfg("learned", sfx); log("info","自动学习后缀: " + (sfx||"(无)") + "（来自 " + uid + "）"); }
+  }
+}
+function doLogin(){
+  var c = cfg();
+  if(!c.account || !c.password){ toast("请先在「账号配置」里填写并保存"); return; }
+  if(busy) return;
+  busy = true; el("btnLogin").disabled = true;
+  setState("busy", "登录中…");
+  log("info","提交登录: " + fullAccount());
+  jsonp(loginUrl()).then(function(j){
+    if(j.result === 1){
+      log("info","登录成功");
+      toast("登录成功");
+      setTimeout(probe, 2500);
+    }else if((j.msg||"").indexOf("已经在线") >= 0){
+      log("info","会话已在线，无需重复登录");
+      toast("已经在线");
+      setTimeout(probe, 800);
+    }else{
+      log("warn","登录失败: " + (j.msg||"未知错误"));
+      toast("失败: " + (j.msg||"未知错误"));
+      setTimeout(probe, 800);
+    }
+  }).catch(function(e){
+    log("error","登录请求失败: " + e.message);
+    toast("网络错误: " + e.message);
+    probe();
+  }).finally(function(){
+    busy = false; el("btnLogin").disabled = false;
+  });
+}
+function doLogout(){
+  busy = true; el("btnLogout").disabled = true;
+  httpJson(logoutUrl()).then(function(j){
+    log(j.result===1 ? "info" : "warn", j.result===1 ? "已注销下线" : "注销返回: " + (j.msg||""));
+    toast(j.result===1 ? "已注销下线" : "注销: " + (j.msg||""));
+    setTimeout(probe, 800);
+  }).catch(function(e){
+    log("error","注销失败: " + e.message);
+    toast("网络错误");
+  }).finally(function(){
+    busy = false; el("btnLogout").disabled = false;
+  });
+}
+
+/* ============ iPhone 快捷指令支持 ============ */
+function copyLoginUrl(){
+  var url = plainLoginUrl();
+  var done = function(){
+    var b = el("btnCopy"); b.textContent = "已复制，去快捷指令粘贴"; b.classList.add("copied");
+    setTimeout(function(){ b.textContent = "复制我的登录链接"; b.classList.remove("copied"); }, 2500);
+  };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(url).then(done, function(){ fallbackCopy(url, done); });
+  }else fallbackCopy(url, done);
+}
+function fallbackCopy(text, done){
+  var ta = document.createElement("textarea");
+  ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+  document.body.appendChild(ta); ta.focus(); ta.select();
+  try{ document.execCommand("copy"); done(); }catch(e){ toast("复制失败，请手动全选复制"); }
+  document.body.removeChild(ta);
+}
+
+/* ============ 杂项 ============ */
+function onCarrierChange(){
+  el("customWrap").style.display = el("inCarrier").value === "custom" ? "block" : "none";
+}
+function suffixText(){
+  var c = cfg(), s = resolveSuffix(c);
+  if(c.carrier === "auto") return "自动检测 · " + (s ? s : "(尚未学习)");
+  return s || "(无)";
+}
+function fmtTime(sec){
+  if(!sec || sec <= 0) return "—";
+  var h = Math.floor(sec/3600), m = Math.floor(sec%3600/60), s = sec%60;
+  return h > 0 ? (h + "h" + ("0"+m).slice(-2) + "m") : (m + "m" + ("0"+s).slice(-2) + "s");
+}
+function el(id){ return document.getElementById(id); }
+function log(level, msg){
+  try{
+    var arr = JSON.parse(localStorage.getItem("cl_logs") || "[]");
+    arr.unshift({ t: Date.now(), l: level, m: msg });
+    arr = arr.slice(0, 50);
+    localStorage.setItem("cl_logs", JSON.stringify(arr));
+    renderLog();
+  }catch(e){}
+}
+function renderLog(){
+  var arr;
+  try{ arr = JSON.parse(localStorage.getItem("cl_logs") || "[]"); }catch(e){ arr = []; }
+  el("log").innerHTML = arr.map(function(o){
+    var d = new Date(o.t), t = ("0"+d.getHours()).slice(-2)+":"+("0"+d.getMinutes()).slice(-2)+":"+("0"+d.getSeconds()).slice(-2);
+    return "[" + t + "] <span class='" + o.l + "'>" + o.l + "</span> " + escapeHtml(o.m);
+  }).join("<br>") || "—";
+}
+function escapeHtml(s){ return String(s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]; }); }
+function toast(msg){
+  var t = document.createElement("div");
+  t.textContent = msg;
+  t.style.cssText = "position:fixed;left:50%;bottom:60px;transform:translateX(-50%);background:#1F2A44;border:1px solid var(--stroke);color:var(--text);padding:10px 16px;border-radius:10px;font-size:13px;z-index:99;box-shadow:0 4px 20px rgba(0,0,0,.5)";
+  document.body.appendChild(t);
+  setTimeout(function(){ t.remove(); }, 2200);
+}
+
+/* ============ 启动 ============ */
+(function init(){
+  var isFile = location.protocol === "file:" || location.protocol === "content:" || location.protocol === "about:";
+  el("protoTip").textContent = (isFile ? "本地页面 · " : location.protocol + "// · ") + "Dr.COM ePortal · JSONP 直连";
+  if(location.protocol === "https:") el("httpsBanner").style.display = "block";
+  loadConfigToUi();
+  renderLog();
+  probe();
+  setInterval(function(){ if(!busy && document.visibilityState === "visible") probe(); }, 30000);
+})();
+</script>
+</body>
+</html>

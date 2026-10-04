@@ -1,0 +1,16 @@
+build-env/
+安装包/
+CampusLogin/node_modules/
+CampusLogin/dist/
+CampusLogin/dist-*/
+CampusLogin/build/
+CampusLogin-Android/.gradle-user/
+CampusLogin-Android/.gradle/
+CampusLogin-Android/.android/
+CampusLogin-Android/local.properties
+CampusLogin-Android/keystore/
+CampusLogin-Android/**/build/
+*.jks
+*.keystore
+*.key
+*.log
