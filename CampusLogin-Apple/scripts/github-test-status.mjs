@@ -36,8 +36,9 @@ if (run.status === 'completed') for (const check of checks.check_runs) {
 }
 const summary = {
     id: run.id, url: run.html_url, sha: run.head_sha, status: run.status, conclusion: run.conclusion,
-    jobs: jobs.jobs.map(j => ({ id: j.id, name: j.name, conclusion: j.conclusion,
-        steps: j.steps.map(s => ({ name: s.name, status: s.status, conclusion: s.conclusion })) })), annotations
+    jobs: jobs.jobs.map(j => ({ id: j.id, name: j.name, conclusion: j.conclusion, startedAt: j.started_at,
+        steps: j.steps.map(s => ({ name: s.name, status: s.status, conclusion: s.conclusion,
+            startedAt: s.started_at, completedAt: s.completed_at })) })), annotations
 };
 const out = path.join(root, 'build');
 fs.mkdirSync(out, { recursive: true });
