@@ -9,6 +9,7 @@ CampusLogin-Android/.gradle/
 CampusLogin-Android/.android/
 CampusLogin-Android/local.properties
 CampusLogin-Android/keystore/
+CampusLogin-Android/signing.local.properties
 CampusLogin-Android/**/build/
 *.jks
 *.keystore
