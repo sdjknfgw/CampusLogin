@@ -21,6 +21,8 @@ import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ScrollView;
+import android.view.Gravity;
+import android.graphics.drawable.ColorDrawable;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -73,9 +75,25 @@ public class MainActivity extends Activity {
         btnStart = findViewById(R.id.btnStart);
         btnStop = findViewById(R.id.btnStop);
 
-        ArrayAdapter<CharSequence> ad = ArrayAdapter.createFromResource(this,
-                R.array.carrier_labels, android.R.layout.simple_spinner_item);
-        ad.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        String[] carrierLabels = getResources().getStringArray(R.array.carrier_labels);
+        ArrayAdapter<String> ad = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, carrierLabels) {
+            private TextView itemView(int position, View convertView) {
+                TextView view = convertView instanceof TextView ? (TextView) convertView : new TextView(MainActivity.this);
+                view.setText(getItem(position));
+                view.setTextColor(getResources().getColor(R.color.text, getTheme()));
+                view.setTextSize(14);
+                view.setGravity(Gravity.CENTER_VERTICAL);
+                view.setPadding(16, 12, 16, 12);
+                view.setBackground(new ColorDrawable(getResources().getColor(R.color.input_bg, getTheme())));
+                return view;
+            }
+            @Override public View getView(int position, View convertView, android.view.ViewGroup parent) {
+                return itemView(position, convertView);
+            }
+            @Override public View getDropDownView(int position, View convertView, android.view.ViewGroup parent) {
+                return itemView(position, convertView);
+            }
+        };
         spCarrier.setAdapter(ad);
         spCarrier.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
@@ -110,14 +128,15 @@ public class MainActivity extends Activity {
 
     private void showWhatsNewOnce() {
         final String version = "1.0.5";
+        String reportRevision = version + "-20261005";
         String seen = getSharedPreferences("settings", MODE_PRIVATE).getString("whatsNewVersion", "");
-        if (version.equals(seen)) return;
+        if (reportRevision.equals(seen)) return;
         new AlertDialog.Builder(this).setTitle("已更新至 v" + version)
-                .setMessage("• 自动发现校园网门户\n• 移动端按钮、背景与图标优化\n• 新增可互动的人偶\n• 更新检查与首次更新说明优化")
+                .setMessage("• 修复运营商下拉菜单黑底黑字\n• 适配常工院 26.0.0.1 网关与 172.19.0.1 认证门户\n• 新增 10 种可点击切换的鲸鱼娘互动人偶\n• 发现新版本自动跳转 GitHub 发布页\n• 更新检查和门户检测提示优化")
                 .setNegativeButton("联系作者", (d, w) -> toast("产品制作者：陈成睿"))
                 .setPositiveButton("知道了", (d, w) -> { })
                 .show();
-        getSharedPreferences("settings", MODE_PRIVATE).edit().putString("whatsNewVersion", version).apply();
+        getSharedPreferences("settings", MODE_PRIVATE).edit().putString("whatsNewVersion", reportRevision).apply();
     }
 
     /**
@@ -161,7 +180,8 @@ public class MainActivity extends Activity {
                     .setNeutralButton("重新检测", (d, w) -> beginPortalDiscovery()).show();
         }));
         try {
-            Intent browser = new Intent(Intent.ACTION_VIEW, Uri.parse("http://" + net.gateway + "/"));
+            String browserHost = "26.0.0.1".equals(net.gateway) ? "172.19.0.1" : net.gateway;
+            Intent browser = new Intent(Intent.ACTION_VIEW, Uri.parse("http://" + browserHost + "/"));
             startActivityForResult(browser, REQUEST_PORTAL_BROWSER);
         } catch (Exception e) {
             toast("无法打开浏览器，请手动打开校园网登录页");

@@ -45,12 +45,13 @@ function showPersona(randomCharacter = false) {
   onCarrierChange();
   showPersona(true);
   const version = data.version || '1.0.5';
-  if (localStorage.getItem('whats-new-version') !== version) {
+  const updateReportRevision = `${version}-20261005`;
+  if (localStorage.getItem('whats-new-version') !== updateReportRevision) {
     $('updateTitle').textContent = `已更新至 v${version}`;
     $('updateVersion').textContent = '本次更新';
-    $('updateNotes').textContent = '• 自动发现校园网门户\n• 移动端按钮、背景与图标优化\n• 新增可互动的人偶\n• 更新检查与首次更新说明优化';
+    $('updateNotes').textContent = '• 新增运行日志一键复制，便于反馈登录错误\n• 登录优先使用门户回传的本机 IP；AC 拒绝时停止重复提交\n• 新增 10 种可点击切换的鲸鱼娘互动人偶\n• 发现新版本会自动打开 GitHub 发布页\n• 手机端修复运营商下拉菜单黑底黑字\n• 手机端适配常工院 26.0.0.1 网关与 172.19.0.1 认证门户';
     $('updateModal').classList.add('show');
-    localStorage.setItem('whats-new-version', version);
+    localStorage.setItem('whats-new-version', updateReportRevision);
   }
 })();
 
