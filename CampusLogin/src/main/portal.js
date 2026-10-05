@@ -30,7 +30,7 @@ function buildQuery(pairs) {
 
 // 本机校园网侧 IPv4（排除环回/链路本地/虚拟网卡；优先门户所在网段）
 function localIp(preferGatewayPrefix) {
-  const bad = /^(127\.|169\.254\.|26\.|198\.18\.|100\.)/;
+  const bad = /^(127\.|169\.254\.|198\.18\.)/;
   let fallback = '';
   for (const list of Object.values(os.networkInterfaces())) {
     for (const it of list || []) {
@@ -118,21 +118,25 @@ async function chkstatus(profile) {
 }
 
 // 登录：{ ok, msg, raw }
-async function login(profile, account, password) {
+async function login(profile, account, password, authenticatedIp = '') {
   const hosts = [profile.host].filter(Boolean);
   let last = null;
   for (const portalHost of hosts) {
     try {
-      const ctx = { account, password, localIp: localIp(gatewayPrefixOf(profile, portalHost)), portalHost };
+      const clientIp = /^\d{1,3}(?:\.\d{1,3}){3}$/.test(authenticatedIp)
+        ? authenticatedIp : localIp(gatewayPrefixOf(profile, portalHost));
+      const ctx = { account, password, localIp: clientIp, portalHost };
       const j = await requestByTemplate(profile, 'login', ctx, TIMEOUT_MS);
       const resultField = (profile.login && profile.login.resultField) || 'result';
       const okValue = (profile.login && profile.login.okValue !== undefined) ? profile.login.okValue : 1;
       const ok = j[resultField] === okValue || j[resultField] === String(okValue);
       if (ok || /已经在线|密码错误|密码不正确|用户名或密码/i.test(j.msg || '')) return { ok, msg: ok ? '' : (j.msg || j.message || j.error || '未知错误'), raw: j, host: portalHost };
       last = j;
-    } catch (err) { last = { error: err.message }; }
+    } catch (err) { last = { networkError: err.message }; }
   }
-  return { ok: false, msg: 'NETWORK: ' + (last && (last.error || last.msg) || '所有门户地址均不可达'), raw: null };
+  const responseMessage = last && (last.msg || last.message || last.error);
+  if (last && !last.networkError) return { ok: false, msg: responseMessage || '门户拒绝登录（result=' + last.result + '）', raw: last };
+  return { ok: false, msg: 'NETWORK: ' + (responseMessage || '所有门户地址均不可达'), raw: null };
 }
 
 // 注销：{ ok, msg }
@@ -236,7 +240,7 @@ async function cycle(reason) {
 
   setState('busy', { reason });
   settings.pushLog('info', `使用当前选择的门户档案登录: ${activeProfile.name}（${activeProfile.host}）`);
-  const r = await login(activeProfile, account, password);
+  const r = await login(activeProfile, account, password, probe.ip);
   settings.pushLog(r.ok ? 'info' : 'warn', `登录(${reason}) [${activeProfile.name}]: ${r.ok ? '成功' : '失败 ' + r.msg}`);
 
   if (r.ok) {
@@ -268,6 +272,13 @@ async function cycle(reason) {
     settings.pushLog('error', `凭据错误，停止重试: ${msg}`);
     notify('校园网登录失败', `凭据错误: ${msg}，请打开面板修改`);
     setState('error', { reason: 'bad-credentials', msg });
+    return;
+  }
+
+  if (r.raw !== null && /AC认证失败|AC验证失败|AC认证拒绝/i.test(msg)) {
+    settings.pushLog('error', `AC 拒绝登录，已停止自动重试: ${msg}`);
+    notify('校园网登录被 AC 拒绝', '已暂停自动重试，请用浏览器确认当前网络门户和认证状态');
+    setState('error', { reason: 'ac-auth-failed', msg });
     return;
   }
 

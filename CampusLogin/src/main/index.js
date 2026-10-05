@@ -360,7 +360,7 @@ ipcMain.handle('test-login', async (_e, cfg) => {
     }
     return { ok: true, msg: `已在线（${probe.uid}），无需登录`, uid: probe.uid };
   }
-  const r = await portal.login(profile, full, cfg.password || settings.getPassword());
+  const r = await portal.login(profile, full, cfg.password || settings.getPassword(), probe.ip);
   settings.pushLog(r.ok ? 'info' : 'warn', `测试登录: ${r.ok ? '成功' : '失败 ' + r.msg}`);
   if (r.ok) {
     const s = settings.load();
