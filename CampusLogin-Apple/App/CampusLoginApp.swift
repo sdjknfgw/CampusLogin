@@ -20,7 +20,6 @@ import AppKit
             if newPhase != .inactive { model.sceneActive(newPhase == .active) }
         }
         #if os(macOS)
-        .defaultSize(width: 540, height: 780)
         MenuBarExtra("CampusLogin", systemImage: model.online ? "network.badge.shield.half.filled" : "network") {
             MenuContent(model: model)
         }

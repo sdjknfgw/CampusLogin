@@ -1,9 +1,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { spawnSync } from 'node:child_process';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const branch = process.argv[2] ?? 'codex/apple-validation';
+const branch = process.argv.slice(2).find(arg => !arg.startsWith('--')) ?? 'codex/apple-validation';
 const api = 'https://api.github.com/repos/sdjknfgw/CampusLogin';
 const headers = { 'User-Agent': 'CampusLogin-Apple-Validation', Accept: 'application/vnd.github+json' };
 async function get(url) {
@@ -30,3 +31,20 @@ const out = path.join(root, 'build');
 fs.mkdirSync(out, { recursive: true });
 fs.writeFileSync(path.join(out, 'remote-test-result.json'), JSON.stringify(summary, null, 2));
 console.log(JSON.stringify(summary, null, 2));
+if (run.status === 'completed' && process.argv.includes('--logs')) {
+    const credential = spawnSync('git', ['credential', 'fill'], {
+        input: 'protocol=https\nhost=github.com\n\n', encoding: 'utf8',
+        env: { ...process.env, GIT_TERMINAL_PROMPT: '0' }, windowsHide: true
+    });
+    const fields = Object.fromEntries((credential.stdout ?? '').trim().split(/\r?\n/)
+        .map(line => { const split = line.indexOf('='); return [line.slice(0, split), line.slice(split + 1)]; }));
+    if (credential.status !== 0 || !fields.password) throw new Error('GitHub credentials unavailable; cannot download build logs.');
+    const authorization = 'Basic ' + Buffer.from(`${fields.username}:${fields.password}`).toString('base64');
+    for (const job of jobs.jobs) {
+        const response = await fetch(`${api}/actions/jobs/${job.id}/logs`, { headers: { ...headers, Authorization: authorization } });
+        if (!response.ok) throw new Error(`Build log download HTTP ${response.status}`);
+        const text = (await response.text()).replaceAll(fields.password, '[redacted]');
+        fs.writeFileSync(path.join(out, `job-${job.id}.log`), text);
+        console.log(text.split('\n').filter(line => /error:|warning:|Test Suite .*passed|Executed .*tests|BUILD SUCCEEDED|BUILD FAILED/.test(line)).join('\n'));
+    }
+}
