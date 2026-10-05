@@ -31,7 +31,7 @@ const out = path.join(root, 'build');
 fs.mkdirSync(out, { recursive: true });
 fs.writeFileSync(path.join(out, 'remote-test-result.json'), JSON.stringify(summary, null, 2));
 console.log(JSON.stringify(summary, null, 2));
-if (run.status === 'completed' && process.argv.includes('--logs')) {
+if (run.status === 'completed' && (process.argv.includes('--logs') || process.argv.includes('--artifacts'))) {
     const credential = spawnSync('git', ['credential', 'fill'], {
         input: 'protocol=https\nhost=github.com\n\n', encoding: 'utf8',
         env: { ...process.env, GIT_TERMINAL_PROMPT: '0' }, windowsHide: true
@@ -40,11 +40,22 @@ if (run.status === 'completed' && process.argv.includes('--logs')) {
         .map(line => { const split = line.indexOf('='); return [line.slice(0, split), line.slice(split + 1)]; }));
     if (credential.status !== 0 || !fields.password) throw new Error('GitHub credentials unavailable; cannot download build logs.');
     const authorization = 'Basic ' + Buffer.from(`${fields.username}:${fields.password}`).toString('base64');
-    for (const job of jobs.jobs) {
+    if (process.argv.includes('--logs')) for (const job of jobs.jobs) {
         const response = await fetch(`${api}/actions/jobs/${job.id}/logs`, { headers: { ...headers, Authorization: authorization } });
         if (!response.ok) throw new Error(`Build log download HTTP ${response.status}`);
         const text = (await response.text()).replaceAll(fields.password, '[redacted]');
         fs.writeFileSync(path.join(out, `job-${job.id}.log`), text);
         console.log(text.split('\n').filter(line => /error:|warning:|Test Suite .*passed|Executed .*tests|BUILD SUCCEEDED|BUILD FAILED/.test(line)).join('\n'));
+    }
+    if (process.argv.includes('--artifacts')) {
+        const artifacts = await get(`${api}/actions/runs/${run.id}/artifacts`);
+        for (const artifact of artifacts.artifacts.filter(a => !a.expired)) {
+            const response = await fetch(artifact.archive_download_url, { headers: { ...headers, Authorization: authorization } });
+            if (!response.ok) throw new Error(`Artifact download HTTP ${response.status}`);
+            const name = artifact.name.replace(/[^A-Za-z0-9._-]/g, '_');
+            const file = path.join(out, `${name}-${run.id}.zip`);
+            fs.writeFileSync(file, Buffer.from(await response.arrayBuffer()));
+            console.log(`Downloaded ${file}`);
+        }
     }
 }
