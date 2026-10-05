@@ -11,16 +11,16 @@ process.stdin.on("end", () => {
   if (!iphone) process.exit(1);
   process.stdout.write(iphone.udid);
 });')
-xcrun simctl boot "$device"
-xcrun simctl bootstatus "$device" -b
-xcrun simctl install "$device" build/iOS/Build/Products/Debug-iphonesimulator/CampusLogin.app
-launch=$(xcrun simctl launch --terminate-running-process "$device" com.campuslogin.app.ios)
+timeout 60 xcrun simctl boot "$device"
+timeout 120 xcrun simctl bootstatus "$device" -b
+timeout 60 xcrun simctl install "$device" build/iOS/Build/Products/Debug-iphonesimulator/CampusLogin.app
+launch=$(timeout 30 xcrun simctl launch --terminate-running-process "$device" com.campuslogin.app.ios)
 printf '%s\n' "$launch" > build/evidence/ios-launch.txt
 pid=${launch##*: }
 sleep 8
 kill -0 "$pid"
-xcrun simctl io "$device" screenshot build/evidence/ios-launch.png
-xcrun simctl terminate "$device" com.campuslogin.app.ios
+timeout 30 xcrun simctl io "$device" screenshot build/evidence/ios-launch.png
+timeout 20 xcrun simctl terminate "$device" com.campuslogin.app.ios
 
 mkdir -p build/smoke/macOS
 ditto build/macOS/Build/Products/Debug/CampusLogin.app build/smoke/macOS/CampusLogin.app
@@ -34,5 +34,5 @@ if [[ -z "$mac_pid" ]] || ! kill -0 "$mac_pid"; then
   exit 1
 fi
 printf 'macOS app remained running after launch (PID %s).\n' "$mac_pid" > build/evidence/macos-launch.txt
-screencapture -x build/evidence/macos-launch.png || echo 'macOS screenshot is unavailable on this runner.'
+timeout 20 screencapture -x build/evidence/macos-launch.png || echo 'macOS screenshot is unavailable on this runner.'
 echo 'iOS Simulator and macOS launch smoke checks passed.'

@@ -22,6 +22,7 @@ jobs:
       - name: Test protocol and build both apps
         run: bash CampusLogin-Apple/scripts/build-apple.sh
       - name: Launch iOS Simulator and macOS apps
+        timeout-minutes: 8
         run: bash CampusLogin-Apple/scripts/smoke-apple.sh
       - uses: actions/upload-artifact@v5
         with:
