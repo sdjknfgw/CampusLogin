@@ -25,11 +25,16 @@ xcrun simctl terminate "$device" com.campuslogin.app.ios
 mkdir -p build/smoke/macOS
 ditto build/macOS/Build/Products/Debug/CampusLogin.app build/smoke/macOS/CampusLogin.app
 codesign --force --deep --sign - --entitlements Config/macOS.entitlements build/smoke/macOS/CampusLogin.app
-build/smoke/macOS/CampusLogin.app/Contents/MacOS/CampusLogin > build/evidence/macos-runtime.log 2>&1 &
+open -a "$(pwd)/build/smoke/macOS/CampusLogin.app"
 mac_pid=$!
-trap 'kill "$mac_pid" 2>/dev/null || true' EXIT
+mac_pid=$(pgrep -n -f 'build/smoke/macOS/CampusLogin.app/Contents/MacOS/CampusLogin' || true)
+trap 'if [[ -n "$mac_pid" ]]; then kill "$mac_pid" 2>/dev/null || true; fi' EXIT
 sleep 8
-kill -0 "$mac_pid"
+if [[ -z "$mac_pid" ]] || ! kill -0 "$mac_pid"; then
+  echo 'macOS app did not remain running after launch.' >&2
+  exit 1
+fi
+osascript -e 'tell application "CampusLogin" to activate' || true
 printf 'macOS app remained running after launch (PID %s).\n' "$mac_pid" > build/evidence/macos-launch.txt
 screencapture -x build/evidence/macos-launch.png
 echo 'iOS Simulator and macOS launch smoke checks passed.'

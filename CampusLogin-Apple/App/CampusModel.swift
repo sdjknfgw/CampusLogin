@@ -32,7 +32,12 @@ import ServiceManagement
         if let data = UserDefaults.standard.data(forKey: storageKey),
            let config = try? JSONDecoder().decode(Configuration.self, from: data) { self.config = config }
         else { config = Configuration() }
-        do { password = try Keychain.read() } catch { detail = error.localizedDescription }
+        do { password = try Keychain.read() } catch {
+            // A simulator without a signing identity can report errSecMissingEntitlement.
+            // Keep the app usable for development; production builds still require Keychain.
+            password = ""
+            detail = "钥匙串暂不可用，请在已签名应用中重试"
+        }
         monitor.pathUpdateHandler = { [weak self] path in
             let connected = path.status == .satisfied && (path.usesInterfaceType(.wifi) || path.usesInterfaceType(.wiredEthernet))
             Task { @MainActor [weak self] in

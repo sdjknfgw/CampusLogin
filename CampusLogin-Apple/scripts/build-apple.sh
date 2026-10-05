@@ -10,7 +10,7 @@ xcodebuild -version
 swift test
 xcodebuild -project CampusLogin.xcodeproj -scheme CampusLogin-iOS \
   -configuration Debug -destination 'generic/platform=iOS Simulator' \
-  -derivedDataPath build/iOS CODE_SIGNING_ALLOWED=NO build
+  -derivedDataPath build/iOS CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- build
 xcodebuild -project CampusLogin.xcodeproj -scheme CampusLogin-macOS \
   -configuration Debug -destination 'generic/platform=macOS' \
   -derivedDataPath build/macOS CODE_SIGNING_ALLOWED=NO build

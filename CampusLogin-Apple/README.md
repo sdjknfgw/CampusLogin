@@ -35,9 +35,11 @@ iOS 不允许此类普通应用无限后台运行。锁屏、切换后台后停�
 bash CampusLogin-Apple/scripts/build-apple.sh
 ```
 
-该脚本执行 Swift 协议单元测试，再构建 iOS 模拟器应用和未签名 macOS 开发应用。测试覆盖参数顺序、密码特殊字符、占位符注入、JSONP、账号边界、Windows 档案导入与无效档案。GitHub Actions 同样执行这些检查，推送后可在 Actions 下载开发构建产物；当前会话尚未推送或触发云端构建。
+该脚本执行 10 项 Swift 测试，再构建 iOS 模拟器应用和未签名 macOS 开发应用。测试覆盖参数顺序、密码特殊字符、占位符注入、JSONP、账号边界、Windows 档案导入、失败停止、退避、运营商后缀、无密码配置，以及 URLSession 的模拟成功、HTTP 失败、重定向和无效响应。
 
-本次创建环境为 Windows，没有 Xcode/Swift 工具链。源码与工程完成了本地结构检查，**尚未完成 Swift 编译、模拟器运行、真机校园网认证或 Apple 签名验证**。CI 产物是开发版本，不是可分发的 IPA 或签名安装程序。
+开发环境为 Windows；已在 GitHub macOS runner 上完成 10 项测试（零失败）和 iOS / macOS Xcode 编译。验证记录见 [测试报告](测试报告.md)。云端完整流程另外执行 `scripts/smoke-apple.sh`，安装、启动 iOS 模拟器应用，启动本地临时签名的 macOS 应用，检查进程并保存截图。
+
+在 [Apple app validation](https://github.com/sdjknfgw/CampusLogin/actions/workflows/apple-build.yml) 的成功运行中下载 `CampusLogin-Apple-development-builds`，内含 `CampusLogin-iOS-Simulator.zip`、`CampusLogin-macOS-unsigned.zip`；启动截图在 `CampusLogin-Apple-test-evidence` 中。macOS ZIP 是未签名开发构建；iOS ZIP 临时签名后只能用于模拟器，不能安装到真机。**尚未验证真实校园网认证、真机安装、Apple 分发签名或公证。**
 
 ## 真机安装和发行
 
