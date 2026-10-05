@@ -26,7 +26,6 @@ mkdir -p build/smoke/macOS
 ditto build/macOS/Build/Products/Debug/CampusLogin.app build/smoke/macOS/CampusLogin.app
 codesign --force --deep --sign - --entitlements Config/macOS.entitlements build/smoke/macOS/CampusLogin.app
 open -a "$(pwd)/build/smoke/macOS/CampusLogin.app"
-mac_pid=$!
 mac_pid=$(pgrep -n -f 'build/smoke/macOS/CampusLogin.app/Contents/MacOS/CampusLogin' || true)
 trap 'if [[ -n "$mac_pid" ]]; then kill "$mac_pid" 2>/dev/null || true; fi' EXIT
 sleep 8

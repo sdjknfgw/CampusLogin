@@ -6,7 +6,17 @@ import { spawnSync } from 'node:child_process';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const branch = process.argv.slice(2).find(arg => !arg.startsWith('--')) ?? 'codex/apple-validation';
 const api = 'https://api.github.com/repos/sdjknfgw/CampusLogin';
+const authResult = spawnSync('git', ['credential', 'fill'], {
+    input: 'protocol=https\nhost=github.com\n\n', encoding: 'utf8',
+    env: { ...process.env, GIT_TERMINAL_PROMPT: '0' }, windowsHide: true
+});
+const auth = Object.fromEntries((authResult.stdout ?? '').trim().split(/\r?\n/).map(line => {
+    const index = line.indexOf('='); return [line.slice(0, index), line.slice(index + 1)];
+}));
 const headers = { 'User-Agent': 'CampusLogin-Apple-Validation', Accept: 'application/vnd.github+json' };
+if (auth.username && auth.password) {
+    headers.Authorization = 'Basic ' + Buffer.from(`${auth.username}:${auth.password}`).toString('base64');
+}
 async function get(url) {
     const response = await fetch(url, { headers });
     if (!response.ok) throw new Error(`GitHub HTTP ${response.status} for ${url}`);
@@ -18,9 +28,11 @@ if (!run) { console.log('No Apple validation run found.'); process.exit(0); }
 const jobs = await get(`${api}/actions/runs/${run.id}/jobs`);
 const checks = await get(`${api}/commits/${run.head_sha}/check-runs`);
 const annotations = [];
-for (const check of checks.check_runs) {
-    const values = await get(`${api}/check-runs/${check.id}/annotations`);
-    annotations.push(...values.map(a => ({ path: a.path, line: a.start_line, level: a.annotation_level, message: a.message })));
+if (run.status === 'completed') for (const check of checks.check_runs) {
+    try {
+        const values = await get(`${api}/check-runs/${check.id}/annotations`);
+        annotations.push(...values.map(a => ({ path: a.path, line: a.start_line, level: a.annotation_level, message: a.message })));
+    } catch (error) { annotations.push({ level: 'warning', message: String(error) }); }
 }
 const summary = {
     id: run.id, url: run.html_url, sha: run.head_sha, status: run.status, conclusion: run.conclusion,
