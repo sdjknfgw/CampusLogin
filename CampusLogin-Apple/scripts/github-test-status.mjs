@@ -17,6 +17,15 @@ const headers = { 'User-Agent': 'CampusLogin-Apple-Validation', Accept: 'applica
 if (auth.username && auth.password) {
     headers.Authorization = 'Basic ' + Buffer.from(`${auth.username}:${auth.password}`).toString('base64');
 }
+const cancelIndex = process.argv.indexOf('--cancel');
+if (cancelIndex >= 0) {
+    const runId = process.argv[cancelIndex + 1];
+    if (!/^\d+$/.test(runId ?? '')) throw new Error('Pass a numeric workflow-run ID after --cancel.');
+    const response = await fetch(`${api}/actions/runs/${runId}/cancel`, { method: 'POST', headers, signal: AbortSignal.timeout(30000) });
+    if (!response.ok) throw new Error(`GitHub cancel request HTTP ${response.status}`);
+    console.log(`Cancellation requested for Apple validation run ${runId}.`);
+    process.exit(0);
+}
 async function get(url) {
     const response = await fetch(url, { headers });
     if (!response.ok) throw new Error(`GitHub HTTP ${response.status} for ${url}`);
