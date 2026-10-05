@@ -1,6 +1,6 @@
 # CampusLogin
 
-校园网 Dr.COM 自动认证工具，包含 Windows 桌面端和 Android 客户端。支持多校园网门户档案、断线重连和手动检查 GitHub Releases 更新。
+校园网 Dr.COM 自动认证工具，包含 Windows 桌面端、Android 客户端，以及新增的 iOS/macOS SwiftUI 原生工程。支持多校园网门户档案、断线重连和 GitHub Releases 下载入口；iOS 自动检查仅在前台运行。
 
 ## 下载
 
@@ -27,6 +27,16 @@ npm run dist
 cd CampusLogin-Android
 gradle assembleRelease
 ```
+
+## iOS / macOS 开发与构建
+
+苹果原生工程位于 `CampusLogin-Apple/CampusLogin.xcodeproj`，需要 Mac 与 Xcode 16 或更新版本。选择 `CampusLogin-iOS` 或 `CampusLogin-macOS`，配置开发团队后运行。支持导入现有 Windows 门户档案，密码使用苹果钥匙串保存。
+
+```bash
+bash CampusLogin-Apple/scripts/build-apple.sh
+```
+
+该脚本执行协议测试并生成 iOS 模拟器与未签名 macOS 开发构建。真机安装、TestFlight 和正式 macOS 分发需要单独签名；苹果安装包尚未发布到 Releases。功能差异、限制和发行步骤见 [苹果客户端说明](CampusLogin-Apple/README.md)。
 
 ## 发布更新
 

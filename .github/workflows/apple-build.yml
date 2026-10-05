@@ -1,0 +1,28 @@
+name: Apple app validation
+on:
+  push:
+    paths: ['CampusLogin-Apple/**', '.github/workflows/apple-build.yml']
+  pull_request:
+    paths: ['CampusLogin-Apple/**', '.github/workflows/apple-build.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  apple:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate project resources
+        run: node CampusLogin-Apple/scripts/check-project.mjs
+      - name: Test protocol and build both apps
+        run: bash CampusLogin-Apple/scripts/build-apple.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CampusLogin-Apple-development-builds
+          path: CampusLogin-Apple/build/*.zip
+          if-no-files-found: error
