@@ -47,6 +47,17 @@
     cursor: pointer; font-size: 13px; line-height: 1;
   }
   .winbtn:hover { color: var(--text); border-color: var(--neon-cyan); box-shadow: 0 0 8px rgba(0,230,255,0.25); }
+  .persona { -webkit-app-region:no-drag; width:42px; height:42px; border:0; border-radius:14px; background:transparent; cursor:pointer; position:relative; padding:0; transition:transform .2s; }
+  .persona:hover { transform:translateY(-2px) rotate(-3deg); }
+  .persona .body { position:absolute; inset:2px; border-radius:15px; background:var(--persona, #246b57); box-shadow:0 5px 13px color-mix(in srgb, var(--persona, #246b57) 30%, transparent); }
+  .persona .face { position:absolute; width:25px; height:24px; left:9px; top:9px; border-radius:50%; background:#fffaf1; }
+  .persona .eye { position:absolute; top:10px; width:3px; height:3px; border-radius:50%; background:var(--persona, #246b57); }
+  .persona .eye.l { left:7px; } .persona .eye.r { right:7px; }
+  .persona .mouth { position:absolute; width:12px; height:7px; left:6.5px; top:14px; border:2px solid var(--persona, #246b57); border-top:0; border-radius:0 0 12px 12px; }
+  .persona.thinking .eye { width:5px; height:2px; top:11px; border-radius:2px; } .persona.thinking .mouth { border:0; border-bottom:2px solid var(--persona, #246b57); border-radius:0; top:16px; }
+  .persona.focused .mouth { border:0; border-bottom:2px solid var(--persona, #246b57); border-radius:0; top:16px; }
+  .persona.confused .mouth { width:7px; height:7px; left:9px; top:14px; border:2px solid var(--persona, #246b57); border-radius:50%; }
+  .persona.celebrating::after { content:'✦'; position:absolute; right:-2px; top:-5px; color:#b57922; font-size:13px; }
 
   .content { flex: 1; padding: 2px 18px 16px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
   .content::-webkit-scrollbar { width: 4px; }
@@ -174,6 +185,7 @@
   .update-actions button { padding:9px 12px; border-radius:9px; cursor:pointer; }
   .update-close { border:1px solid var(--stroke); background:#f3f5f0; color:var(--text); }
   .update-open { border:0; background:#246b57; color:#fff; font-weight:700; }
+  .footer { color:var(--dim); text-align:center; font-size:10px; padding:2px 0 4px; }
 </style>
 </head>
 <body>
@@ -181,6 +193,7 @@
     <div class="logo"></div>
     <div class="title">CampusLogin<small>校园网自动认证</small></div>
     <div class="spacer"></div>
+    <button class="persona" id="persona" title="点击切换表情" aria-label="互动人偶"><span class="body"></span><span class="face"><i class="eye l"></i><i class="eye r"></i><i class="mouth"></i></span></button>
     <button class="winbtn" id="btnUpdate" title="检查软件更新" style="width:auto;padding:0 9px;font-size:10px;">检查更新</button>
     <button class="winbtn" id="btnMin">─</button>
     <button class="winbtn" id="btnClose">✕</button>
@@ -257,6 +270,7 @@
       </div>
       <div class="logbox" id="logbox"></div>
     </div>
+    <div class="footer">产品制作者：陈成睿 · v1.0.4</div>
   </div>
 
   <div class="toast" id="toast"></div>
@@ -268,7 +282,7 @@
       <div class="update-actions">
         <button class="update-close" id="btnUpdateClose">稍后</button>
         <div class="spacer"></div>
-        <button class="update-open" id="btnUpdateOpen">打开下载页面</button>
+        <button class="update-open" id="btnUpdateOpen">联系作者</button>
       </div>
     </section>
   </div>

@@ -2,7 +2,18 @@
 const $ = (id) => document.getElementById(id);
 let engineState = 'idle';
 let lastInit = null;
-let latestReleaseUrl = '';
+const PERSONAS = ['#246b57', '#b57922', '#517097'];
+const EXPRESSIONS = [
+  ['happy', '连接顺利，今天也保持在线。'], ['thinking', '让我想想下一步。'],
+  ['focused', '认证信息已准备好。'], ['confused', '网络似乎还在路上。'], ['celebrating', '连接完成，出发吧！']
+];
+let expressionIndex = Math.floor(Math.random() * EXPRESSIONS.length);
+function showPersona(randomCharacter = false) {
+  const el = $('persona');
+  if (randomCharacter) el.style.setProperty('--persona', PERSONAS[Math.floor(Math.random() * PERSONAS.length)]);
+  const [name] = EXPRESSIONS[expressionIndex];
+  el.className = 'persona ' + name;
+}
 
 // ---------- 初始化 ----------
 (async function init() {
@@ -28,6 +39,15 @@ let latestReleaseUrl = '';
   renderLogs(data.logs);
   applyEngineState({ state: data.snapshot.state, stateLabel: data.stateLabel, lastProbe: data.snapshot.lastProbe });
   onCarrierChange();
+  showPersona(true);
+  const version = data.version || '1.0.4';
+  if (localStorage.getItem('whats-new-version') !== version) {
+    $('updateTitle').textContent = `已更新至 v${version}`;
+    $('updateVersion').textContent = '本次更新';
+    $('updateNotes').textContent = '• 自动发现校园网门户\n• 移动端按钮、背景与图标优化\n• 新增可互动的人偶\n• 更新检查与首次更新说明优化';
+    $('updateModal').classList.add('show');
+    localStorage.setItem('whats-new-version', version);
+  }
 })();
 
 // ---------- 运营商交互 ----------
@@ -213,7 +233,7 @@ $('btnUpdate').addEventListener('click', () => withBusy($('btnUpdate'), async ()
   const result = await window.campus.checkUpdates();
   if (!result.ok) return toast('检查更新失败：' + (result.msg || '请稍后重试'), 'err');
   if (!result.updateAvailable) return toast(`当前已是最新版 v${result.currentVersion}`, 'ok');
-  latestReleaseUrl = result.url;
+  $('updateTitle').textContent = '发现新版本';
   $('updateVersion').textContent = `当前版本 v${result.currentVersion}  →  最新版本 v${result.latestVersion}`;
   $('updateNotes').textContent = result.notes || '此版本没有提供更新说明。';
   $('updateModal').classList.add('show');
@@ -224,9 +244,14 @@ $('updateModal').addEventListener('click', (event) => {
   if (event.target === $('updateModal')) $('updateModal').classList.remove('show');
 });
 $('btnUpdateOpen').addEventListener('click', async () => {
-  const result = await window.campus.openReleasePage(latestReleaseUrl);
-  if (!result.ok) toast(result.msg || '无法打开下载页面', 'err');
-  else $('updateModal').classList.remove('show');
+  $('updateModal').classList.remove('show');
+  toast('产品制作者：陈成睿');
+});
+
+$('persona').addEventListener('click', () => {
+  expressionIndex = (expressionIndex + 1) % EXPRESSIONS.length;
+  showPersona(false);
+  toast(EXPRESSIONS[expressionIndex][1], 'ok');
 });
 
 $('btnTest').addEventListener('click', () => withBusy($('btnTest'), async () => {

@@ -279,6 +279,7 @@ ipcMain.handle('get-init', () => {
     })),
     network: portal.currentProfileCtx.net,
     activeProfileId: settings.getActiveProfileId()
+    ,version: app.getVersion()
   };
 });
 

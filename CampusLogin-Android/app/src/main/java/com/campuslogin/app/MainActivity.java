@@ -105,6 +105,19 @@ public class MainActivity extends Activity {
         if (Build.VERSION.SDK_INT >= 23 && checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED)
             permissions.add(Manifest.permission.ACCESS_FINE_LOCATION);
         if (!permissions.isEmpty()) requestPermissions(permissions.toArray(new String[0]), 1);
+        showWhatsNewOnce();
+    }
+
+    private void showWhatsNewOnce() {
+        final String version = "1.0.4";
+        String seen = getSharedPreferences("settings", MODE_PRIVATE).getString("whatsNewVersion", "");
+        if (version.equals(seen)) return;
+        new AlertDialog.Builder(this).setTitle("已更新至 v" + version)
+                .setMessage("• 自动发现校园网门户\n• 移动端按钮、背景与图标优化\n• 新增可互动的人偶\n• 更新检查与首次更新说明优化")
+                .setNegativeButton("联系作者", (d, w) -> toast("产品制作者：陈成睿"))
+                .setPositiveButton("知道了", (d, w) -> { })
+                .show();
+        getSharedPreferences("settings", MODE_PRIVATE).edit().putString("whatsNewVersion", version).apply();
     }
 
     /**
@@ -379,11 +392,10 @@ public class MainActivity extends Activity {
                     JSONObject release = new JSONObject(bytes.toString("UTF-8"));
                     String latest = release.optString("tag_name", release.optString("name", "")).replaceFirst("^[vV]", "");
                     String notes = release.optString("body", "此版本没有提供更新说明。");
-                    String releaseUrl = release.optString("html_url", "https://github.com/sdjknfgw/CampusLogin/releases/latest");
                     String current = getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
                     boolean available = compareVersions(latest, current) > 0;
                     runOnUiThread(() -> {
-                        if (available) showUpdateDialog(current, latest, notes, releaseUrl);
+                        if (available) showUpdateDialog(current, latest, notes);
                         else toast("当前已是最新版 v" + current);
                     });
                 } finally { conn.disconnect(); }
@@ -395,7 +407,7 @@ public class MainActivity extends Activity {
         }, "check-updates").start();
     }
 
-    private void showUpdateDialog(String current, String latest, String notes, String releaseUrl) {
+    private void showUpdateDialog(String current, String latest, String notes) {
         TextView content = new TextView(this);
         content.setText("当前版本 v" + current + "  →  最新版本 v" + latest + "\n\n" + notes);
         content.setTextColor(getCol(R.color.text));
@@ -407,12 +419,7 @@ public class MainActivity extends Activity {
                 .setTitle("发现新版本")
                 .setView(scroll)
                 .setNegativeButton("稍后", null)
-                .setPositiveButton("打开下载页面", (dialog, which) -> {
-                    Uri uri = Uri.parse(releaseUrl);
-                    if ("https".equals(uri.getScheme()) && "github.com".equalsIgnoreCase(uri.getHost())) {
-                        startActivity(new Intent(Intent.ACTION_VIEW, uri));
-                    } else toast("下载地址无效");
-                }).show();
+                .setPositiveButton("联系作者", (dialog, which) -> toast("产品制作者：陈成睿")).show();
     }
 
     private static int compareVersions(String a, String b) {

@@ -12,13 +12,25 @@
         android:padding="16dp"
         android:background="@drawable/bg_mobile">
 
-        <TextView
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/app_name"
-            android:textColor="@color/text"
-            android:textSize="20sp"
-            android:textStyle="bold" />
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/app_name"
+                android:textColor="@color/text"
+                android:textSize="20sp"
+                android:textStyle="bold" />
+            <com.campuslogin.app.PersonaView
+                android:id="@+id/personaView"
+                android:layout_width="46dp"
+                android:layout_height="46dp"
+                android:contentDescription="互动人偶，点击切换表情" />
+        </LinearLayout>
 
         <TextView
             android:id="@+id/tvEngineState"
@@ -344,6 +356,18 @@
             android:text="—"
             android:textColor="@color/muted"
             android:textSize="11sp" />
+
+        <Space
+            android:layout_width="match_parent"
+            android:layout_height="16dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:text="产品制作者：陈成睿 · v1.0.4"
+            android:textColor="@color/muted"
+            android:textSize="10sp" />
 
         <Space
             android:layout_width="match_parent"
