@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- 赛博暗色风：深空底 + 霓虹青强调 -->
-    <color name="bg">#0A0F1E</color>
-    <color name="card">#121A2E</color>
-    <color name="card_stroke">#22314F</color>
-    <color name="accent">#22D3EE</color>
-    <color name="accent_dim">#0E7490</color>
-    <color name="ok">#34D399</color>
-    <color name="busy">#FBBF24</color>
-    <color name="err">#F87171</color>
-    <color name="text">#E5E7EB</color>
-    <color name="muted">#8CA0B8</color>
-    <color name="input_bg">#0D1526</color>
-    <color name="btn_text_dark">#06121A</color>
+    <color name="bg">#F2F0E9</color>
+    <color name="card">#EFFFFB</color>
+    <color name="card_stroke">#D2DED5</color>
+    <color name="accent">#246B57</color>
+    <color name="accent_dim">#5E927B</color>
+    <color name="ok">#27845E</color>
+    <color name="busy">#B57922</color>
+    <color name="err">#C44E42</color>
+    <color name="text">#1F302A</color>
+    <color name="muted">#738079</color>
+    <color name="input_bg">#F7F8F3</color>
+    <color name="btn_text_dark">#FFFFFF</color>
 </resources>

@@ -6,7 +6,7 @@
 
 在 [Releases](https://github.com/sdjknfgw/CampusLogin/releases/latest) 下载 Windows 安装程序或 Android APK。更新检查只显示版本号、更新说明和下载页面，不会自动安装。
 
-首次连接新校园网时，Windows 端会在识别到 Dr.COM 门户后打开登录向导。Android 端需要在应用中填写该网络的门户 IPv4 地址；保存后会按网关和 Wi-Fi 名称识别。网络标识冲突时需要手动选择门户档案。
+首次连接新校园网时，Windows 端会在识别到 Dr.COM 门户后打开登录向导。Android 端可点“自动检测校园网门户”，随后在浏览器中正常登录一次；应用会在两分钟内对当前 Wi-Fi 网关进行只读验证，发现门户后由用户确认使用。它不读取、保存或上传浏览器页面内容、账号或密码。网络标识冲突时需要手动选择门户档案。
 
 ## Windows 开发与构建
 

@@ -37,6 +37,8 @@ public class MainActivity extends Activity {
     private TextView tvState, tvAccount, tvInfo, tvSuffixHint, tvEngineState, tvLog, tvNetworkProfile;
     private Button btnStart, btnStop;
 
+    private static final int REQUEST_PORTAL_BROWSER = 410;
+
     private final Handler ui = new Handler(Looper.getMainLooper());
     private boolean suppressSpinner = false;
     private String promptedNetworkKey = "";
@@ -92,6 +94,7 @@ public class MainActivity extends Activity {
         findViewById(R.id.btnLoginNow).setOnClickListener(v -> onLoginNow());
         findViewById(R.id.btnLogout).setOnClickListener(v -> onLogout());
         findViewById(R.id.btnCheckUpdates).setOnClickListener(v -> checkForUpdates());
+        findViewById(R.id.btnDiscoverPortal).setOnClickListener(v -> showPortalDiscoveryIntro());
 
         swAutoLogin.setOnCheckedChangeListener((b, on) -> updatePrefs(s -> s.autoLogin = on));
         swBootStart.setOnCheckedChangeListener((b, on) -> updatePrefs(s -> s.bootStart = on));
@@ -102,6 +105,65 @@ public class MainActivity extends Activity {
         if (Build.VERSION.SDK_INT >= 23 && checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED)
             permissions.add(Manifest.permission.ACCESS_FINE_LOCATION);
         if (!permissions.isEmpty()) requestPermissions(permissions.toArray(new String[0]), 1);
+    }
+
+    /**
+     * Android does not expose another browser's HTTPS requests or page title to an app.
+     * The discovery flow therefore opens only the current Wi-Fi gateway in the user's
+     * browser and, while the two-minute session is active, performs read-only Dr.COM
+     * status checks against that gateway.  It never installs a VPN or reads browser data.
+     */
+    private void showPortalDiscoveryIntro() {
+        new AlertDialog.Builder(this)
+                .setTitle("自动检测校园网门户")
+                .setMessage("接下来会打开浏览器。请在“常州工学院”校园网页面正常登录一次。\n\n检测只持续 2 分钟，只验证当前 Wi-Fi 网关是否为校园网门户；不会读取、保存或上传网页内容、账号或密码。")
+                .setNegativeButton("取消", null)
+                .setPositiveButton("开始检测", (d, w) -> beginPortalDiscovery())
+                .show();
+    }
+
+    private void beginPortalDiscovery() {
+        Prefs.NetworkInfo net = Prefs.currentNetwork(this);
+        if (net.gateway.isEmpty()) {
+            toast("未找到 Wi-Fi 网关，请先连接校园网");
+            return;
+        }
+        findViewById(R.id.btnDiscoverPortal).setEnabled(false);
+        ((Button) findViewById(R.id.btnDiscoverPortal)).setText("正在检测（最多 2 分钟）");
+        PortalDiscovery.find(this, net.gateway, result -> runOnUiThread(() -> {
+            Button button = findViewById(R.id.btnDiscoverPortal);
+            button.setEnabled(true);
+            button.setText("自动检测校园网门户");
+            if (result == null || !isValidHost(result)) {
+                new AlertDialog.Builder(this).setTitle("未找到校园网门户")
+                        .setMessage("请确认已在手机浏览器中完成常州工学院校园网登录，再重新检测。")
+                        .setPositiveButton("重新检测", (d, w) -> beginPortalDiscovery())
+                        .setNegativeButton("保留原门户", null).show();
+                return;
+            }
+            new AlertDialog.Builder(this).setTitle("发现校园网门户")
+                    .setMessage("已发现校园网门户：" + result + "\n\n是否使用此门户进行自动登录？")
+                    .setPositiveButton("使用此门户", (d, w) -> acceptDiscoveredPortal(result))
+                    .setNegativeButton("保留原门户", null)
+                    .setNeutralButton("重新检测", (d, w) -> beginPortalDiscovery()).show();
+        }));
+        try {
+            Intent browser = new Intent(Intent.ACTION_VIEW, Uri.parse("http://" + net.gateway + "/"));
+            startActivityForResult(browser, REQUEST_PORTAL_BROWSER);
+        } catch (Exception e) {
+            toast("无法打开浏览器，请手动打开校园网登录页");
+        }
+    }
+
+    private void acceptDiscoveredPortal(String host) {
+        etPortalHost.setText(host);
+        Prefs.Config s = Prefs.load(this);
+        s.portalHost = host;
+        Prefs.save(this, s);
+        Prefs.savePortalProfile(this, host);
+        Prefs.pushLog(this, "info", "已采用自动发现的校园网门户：" + host);
+        toast("已使用校园网门户");
+        refreshStatus();
     }
 
     // ---- 配置 ----
