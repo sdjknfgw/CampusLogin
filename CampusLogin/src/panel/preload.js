@@ -3,6 +3,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('campus', {
   getInit: () => ipcRenderer.invoke('get-init'),
+  copyLogs: () => ipcRenderer.invoke('copy-logs'),
   saveConfig: (cfg) => ipcRenderer.invoke('save-config', cfg),
   testLogin: (cfg) => ipcRenderer.invoke('test-login', cfg),
   manualLogin: () => ipcRenderer.invoke('manual-login'),

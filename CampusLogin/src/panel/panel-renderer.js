@@ -2,17 +2,21 @@
 const $ = (id) => document.getElementById(id);
 let engineState = 'idle';
 let lastInit = null;
-const PERSONAS = ['#246b57', '#b57922', '#517097'];
+let latestReleaseUrl = 'https://github.com/sdjknfgw/CampusLogin/releases/latest';
 const EXPRESSIONS = [
   ['happy', '连接顺利，今天也保持在线。'], ['thinking', '让我想想下一步。'],
-  ['focused', '认证信息已准备好。'], ['confused', '网络似乎还在路上。'], ['celebrating', '连接完成，出发吧！']
+  ['focused', '认证信息已准备好。'], ['confused', '网络似乎还在路上。'], ['celebrating', '连接完成，出发吧！'],
+  ['eating_rice', '我吃白饭怎么了'], ['surprised', '咦？发现了新的网络线索。'],
+  ['sleepy', '网络还没准备好，我先眯一会儿。'], ['curious', '前面是不是有新的连接？'],
+  ['waving', '你好呀，今天也一起保持在线。']
 ];
 let expressionIndex = Math.floor(Math.random() * EXPRESSIONS.length);
 function showPersona(randomCharacter = false) {
   const el = $('persona');
-  if (randomCharacter) el.style.setProperty('--persona', PERSONAS[Math.floor(Math.random() * PERSONAS.length)]);
   const [name] = EXPRESSIONS[expressionIndex];
   el.className = 'persona ' + name;
+  el.querySelector('img').src = `assets/deepseek_mascot_${name}.png`;
+  el.title = EXPRESSIONS[expressionIndex][1];
 }
 
 // ---------- 初始化 ----------
@@ -40,7 +44,7 @@ function showPersona(randomCharacter = false) {
   applyEngineState({ state: data.snapshot.state, stateLabel: data.stateLabel, lastProbe: data.snapshot.lastProbe });
   onCarrierChange();
   showPersona(true);
-  const version = data.version || '1.0.4';
+  const version = data.version || '1.0.5';
   if (localStorage.getItem('whats-new-version') !== version) {
     $('updateTitle').textContent = `已更新至 v${version}`;
     $('updateVersion').textContent = '本次更新';
@@ -233,9 +237,13 @@ $('btnUpdate').addEventListener('click', () => withBusy($('btnUpdate'), async ()
   const result = await window.campus.checkUpdates();
   if (!result.ok) return toast('检查更新失败：' + (result.msg || '请稍后重试'), 'err');
   if (!result.updateAvailable) return toast(`当前已是最新版 v${result.currentVersion}`, 'ok');
+  const opened = await window.campus.openReleasePage(result.url);
+  if (!opened.ok) return toast(opened.msg || '无法打开 GitHub 发布页', 'err');
+  latestReleaseUrl = result.url;
+  $('btnUpdateOpen').textContent = '打开 GitHub 发布页';
   $('updateTitle').textContent = '发现新版本';
   $('updateVersion').textContent = `当前版本 v${result.currentVersion}  →  最新版本 v${result.latestVersion}`;
-  $('updateNotes').textContent = result.notes || '此版本没有提供更新说明。';
+  $('updateNotes').textContent = (result.notes || '此版本没有提供更新说明。') + '\n\n已在浏览器中打开 GitHub 发布页。';
   $('updateModal').classList.add('show');
 }));
 
@@ -244,8 +252,9 @@ $('updateModal').addEventListener('click', (event) => {
   if (event.target === $('updateModal')) $('updateModal').classList.remove('show');
 });
 $('btnUpdateOpen').addEventListener('click', async () => {
+  const result = await window.campus.openReleasePage(latestReleaseUrl);
+  if (!result.ok) return toast(result.msg || '无法打开 GitHub 发布页', 'err');
   $('updateModal').classList.remove('show');
-  toast('产品制作者：陈成睿');
 });
 
 $('persona').addEventListener('click', () => {
@@ -267,6 +276,11 @@ $('btnTest').addEventListener('click', () => withBusy($('btnTest'), async () => 
     toast('失败: ' + (r.msg || '未知错误'), 'err');
   }
 }));
+
+$('btnCopyLogs').addEventListener('click', async () => {
+  const result = await window.campus.copyLogs();
+  toast(result.ok ? `已复制 ${result.count} 条日志，可粘贴到聊天` : '复制日志失败', result.ok ? 'ok' : 'err');
+});
 
 $('btnReauth').addEventListener('click', () => withBusy($('btnReauth'), async () => {
   const r = await window.campus.forceReauth();

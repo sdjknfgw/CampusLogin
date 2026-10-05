@@ -1,6 +1,6 @@
 // CampusLogin 主进程：托盘常驻 + 网络变化监听 + 档案匹配 + 登录向导
 // 约束（项目记忆）：空闲 CPU≈0%；面板关闭即销毁渲染进程；托盘图标用 16px
-const { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain, Notification, shell, dialog } = require('electron');
+const { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain, Notification, shell, dialog, clipboard } = require('electron');
 const os = require('os');
 const path = require('path');
 const https = require('https');
@@ -281,6 +281,15 @@ ipcMain.handle('get-init', () => {
     activeProfileId: settings.getActiveProfileId()
     ,version: app.getVersion()
   };
+});
+
+ipcMain.handle('copy-logs', () => {
+  const lines = settings.load().logs.slice(0, 100).slice().reverse().map(l => {
+    const time = new Date(l.t).toLocaleString('zh-CN', { hour12: false });
+    return `[${time}] [${l.level}] ${l.msg}`;
+  });
+  clipboard.writeText(lines.join('\n'));
+  return { ok: true, count: lines.length };
 });
 
 ipcMain.handle('save-config', (_e, cfg) => {

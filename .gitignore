@@ -15,3 +15,7 @@ CampusLogin-Android/**/build/
 *.keystore
 *.key
 *.log
+
+# 本地工作目录与设计源素材
+_wm_probe/
+人偶素材/

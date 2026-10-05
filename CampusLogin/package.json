@@ -1,7 +1,7 @@
 {
   "name": "campuslogin",
   "productName": "CampusLogin",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "校园网（Dr.COM 门户）自动登录工具，托盘常驻，断线自动重连",
   "main": "src/main/index.js",
   "author": "陈成睿",
