@@ -9,7 +9,17 @@ try {
         $iconRoot = Join-Path $assetRoot ($name + '.appiconset')
         New-Item -ItemType Directory -Path $iconRoot -Force | Out-Null
         $entries = @()
-        if ($name -eq 'AppIcon') { $variants = @(@{ idiom = 'universal'; size = '1024x1024'; scale = '1x'; pixels = 1024; platform = 'ios' }) }
+        if ($name -eq 'AppIcon') {
+            $variants = @()
+            foreach ($size in @(20, 29, 40, 60)) {
+                foreach ($scale in @(2, 3)) { $variants += @{ idiom = 'iphone'; size = ($size.ToString() + 'x' + $size); scale = ($scale.ToString() + 'x'); pixels = $size * $scale } }
+            }
+            foreach ($size in @(20, 29, 40, 76)) {
+                foreach ($scale in @(1, 2)) { $variants += @{ idiom = 'ipad'; size = ($size.ToString() + 'x' + $size); scale = ($scale.ToString() + 'x'); pixels = $size * $scale } }
+            }
+            $variants += @{ idiom = 'ipad'; size = '83.5x83.5'; scale = '2x'; pixels = 167 }
+            $variants += @{ idiom = 'ios-marketing'; size = '1024x1024'; scale = '1x'; pixels = 1024 }
+        }
         else {
             $variants = @()
             foreach ($size in @(16, 32, 128, 256, 512)) {
@@ -18,6 +28,7 @@ try {
         }
         foreach ($variant in $variants) {
             $filename = 'icon-' + $variant.size + '-' + $variant.scale + '.png'
+            if ($name -eq 'AppIcon' -and $variant.idiom -ne 'ios-marketing') { $filename = 'icon-' + $variant.idiom + '-' + $variant.size + '-' + $variant.scale + '.png' }
             $bitmap = New-Object System.Drawing.Bitmap($variant.pixels, $variant.pixels, [System.Drawing.Imaging.PixelFormat]::Format24bppRgb)
             $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
             try {

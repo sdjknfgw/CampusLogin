@@ -69,7 +69,7 @@ for (const target of targets) {
 for (const name of ['AppIcon', 'MacIcon']) {
     const folder = path.join(root, `Resources/Assets.xcassets/${name}.appiconset`);
     const catalog = JSON.parse(fs.readFileSync(path.join(folder, 'Contents.json'), 'utf8').replace(/^\uFEFF/, ''));
-    assert.equal(catalog.images.length, name === 'AppIcon' ? 1 : 10);
+    assert.equal(catalog.images.length, name === 'AppIcon' ? 18 : 10);
     for (const entry of catalog.images) {
         const data = fs.readFileSync(path.join(folder, entry.filename));
         assert.equal(data.subarray(1, 4).toString(), 'PNG');
@@ -79,4 +79,4 @@ for (const name of ['AppIcon', 'MacIcon']) {
         assert.equal(data[25], 2, 'Icons must be RGB without an alpha channel');
     }
 }
-console.log(`Validated ${Object.keys(objects).length} Xcode objects, both shared schemes, 18 source references and 11 RGB icons.`);
+console.log(`Validated ${Object.keys(objects).length} Xcode objects, both shared schemes, 18 source references and 28 RGB icons.`);

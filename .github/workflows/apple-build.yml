@@ -23,12 +23,12 @@ jobs:
         run: bash CampusLogin-Apple/scripts/build-apple.sh
       - name: Launch iOS Simulator and macOS apps
         run: bash CampusLogin-Apple/scripts/smoke-apple.sh
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: CampusLogin-Apple-development-builds
           path: CampusLogin-Apple/build/*.zip
           if-no-files-found: error
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: always()
         with:
           name: CampusLogin-Apple-test-evidence
