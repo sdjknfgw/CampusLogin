@@ -150,7 +150,7 @@ public class MainActivity extends Activity {
             TextView step = new TextView(this);
             step.setText(flowSteps[i]);
             step.setGravity(Gravity.CENTER);
-            step.setTextColor(getResources().getColor(R.color.text, getTheme()));
+            step.setTextColor(android.graphics.Color.rgb(32, 36, 34));
             step.setTextSize(14);
             step.setTypeface(null, android.graphics.Typeface.BOLD);
             step.setPadding(12, 10, 12, 10);
@@ -167,14 +167,15 @@ public class MainActivity extends Activity {
         }
         TextView content = new TextView(this);
         content.setText(guide);
-        content.setTextColor(getResources().getColor(R.color.text, getTheme()));
+        content.setTextColor(android.graphics.Color.rgb(32, 36, 34));
         content.setTextSize(14);
         content.setLineSpacing(4, 1f);
         content.setPadding(0, 16, 0, 8);
         guideBody.addView(content, new LinearLayout.LayoutParams(-1, -2));
         ScrollView scroll = new ScrollView(this);
         scroll.addView(guideBody);
-        new AlertDialog.Builder(this).setTitle("新手先看 · 使用流程")
+        scroll.setBackgroundColor(getResources().getColor(android.R.color.white));
+        new AlertDialog.Builder(this, android.R.style.Theme_Material_Light_Dialog_Alert).setTitle("新手先看 · 使用流程")
                 .setView(scroll).setPositiveButton("我知道了", null).show();
     }
 
@@ -183,7 +184,7 @@ public class MainActivity extends Activity {
         String reportRevision = version + "-20261006";
         String seen = getSharedPreferences("settings", MODE_PRIVATE).getString("whatsNewVersion", "");
         if (reportRevision.equals(seen)) return;
-        new AlertDialog.Builder(this).setTitle("已更新至 v" + version)
+        new AlertDialog.Builder(this, android.R.style.Theme_Material_Light_Dialog_Alert).setTitle("已更新至 v" + version)
                 .setMessage("• 自动检测固定认证门户 172.19.0.1，不再误把 DHCP 网关当作门户\n• 支持 DHCP 网关与认证门户地址不同的网络")
                 .setNegativeButton("联系作者", (d, w) -> toast("产品制作者：陈成睿"))
                 .setPositiveButton("知道了", (d, w) -> { })
@@ -489,12 +490,13 @@ public class MainActivity extends Activity {
     private void showUpdateDialog(String current, String latest, String notes) {
         TextView content = new TextView(this);
         content.setText("当前版本 v" + current + "  →  最新版本 v" + latest + "\n\n" + notes);
-        content.setTextColor(getCol(R.color.text));
+        content.setTextColor(android.graphics.Color.rgb(32, 36, 34));
         content.setTextSize(14);
         content.setPadding(20, 12, 20, 12);
         ScrollView scroll = new ScrollView(this);
+        scroll.setBackgroundColor(android.graphics.Color.WHITE);
         scroll.addView(content);
-        new AlertDialog.Builder(this)
+        new AlertDialog.Builder(this, android.R.style.Theme_Material_Light_Dialog_Alert)
                 .setTitle("发现新版本")
                 .setView(scroll)
                 .setNegativeButton("稍后", null)
