@@ -15,7 +15,16 @@ CampusLogin-Android/**/build/
 *.keystore
 *.key
 *.log
+CampusLogin-Apple/.build/
+CampusLogin-Apple/.swiftpm/
+CampusLogin-Apple/build/
+CampusLogin-Apple/**/*.xcuserstate
+CampusLogin-Apple/**/xcuserdata/
+CampusLogin-Apple/*.xcarchive
+CampusLogin-Apple/*.ipa
 
 # 本地工作目录与设计源素材
 _wm_probe/
 人偶素材/
+.workbuddy/
+mac版分发/
