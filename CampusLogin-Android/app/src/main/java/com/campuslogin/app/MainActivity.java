@@ -127,12 +127,12 @@ public class MainActivity extends Activity {
     }
 
     private void showWhatsNewOnce() {
-        final String version = "1.0.5";
-        String reportRevision = version + "-20261005";
+        final String version = "1.0.6";
+        String reportRevision = version + "-20261006";
         String seen = getSharedPreferences("settings", MODE_PRIVATE).getString("whatsNewVersion", "");
         if (reportRevision.equals(seen)) return;
         new AlertDialog.Builder(this).setTitle("已更新至 v" + version)
-                .setMessage("• 修复运营商下拉菜单黑底黑字\n• 适配常工院 26.0.0.1 网关与 172.19.0.1 认证门户\n• 新增 10 种可点击切换的鲸鱼娘互动人偶\n• 发现新版本自动跳转 GitHub 发布页\n• 更新检查和门户检测提示优化")
+                .setMessage("• 自动检测固定认证门户 172.19.0.1，不再误把 DHCP 网关当作门户\n• 支持 DHCP 网关与认证门户地址不同的网络")
                 .setNegativeButton("联系作者", (d, w) -> toast("产品制作者：陈成睿"))
                 .setPositiveButton("知道了", (d, w) -> { })
                 .show();
@@ -141,9 +141,9 @@ public class MainActivity extends Activity {
 
     /**
      * Android does not expose another browser's HTTPS requests or page title to an app.
-     * The discovery flow therefore opens only the current Wi-Fi gateway in the user's
-     * browser and, while the two-minute session is active, performs read-only Dr.COM
-     * status checks against that gateway.  It never installs a VPN or reads browser data.
+     * The discovery flow opens the campus portal in the user's browser and, while the
+     * two-minute session is active, performs read-only Dr.COM status checks against the
+     * current Wi-Fi gateway and the known campus portal. It never reads browser data.
      */
     private void showPortalDiscoveryIntro() {
         new AlertDialog.Builder(this)
@@ -180,7 +180,7 @@ public class MainActivity extends Activity {
                     .setNeutralButton("重新检测", (d, w) -> beginPortalDiscovery()).show();
         }));
         try {
-            String browserHost = "26.0.0.1".equals(net.gateway) ? "172.19.0.1" : net.gateway;
+            String browserHost = "172.19.0.1";
             Intent browser = new Intent(Intent.ACTION_VIEW, Uri.parse("http://" + browserHost + "/"));
             startActivityForResult(browser, REQUEST_PORTAL_BROWSER);
         } catch (Exception e) {

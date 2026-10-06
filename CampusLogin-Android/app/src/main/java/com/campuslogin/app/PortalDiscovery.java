@@ -12,6 +12,7 @@ import java.util.List;
 /** Read-only, on-demand campus-portal discovery. No browser requests are captured. */
 public final class PortalDiscovery {
     public interface Callback { void onComplete(String host); }
+    private static final String CAMPUS_PORTAL_HOST = "172.19.0.1";
     private static final long TIMEOUT_MS = 120_000L;
     private static final ExecutorService EXECUTOR = Executors.newSingleThreadExecutor();
     private PortalDiscovery() { }
@@ -33,8 +34,8 @@ public final class PortalDiscovery {
     private static List<String> candidates(String gateway) {
         ArrayList<String> out = new ArrayList<>();
         if (gateway != null && !gateway.isEmpty()) out.add(gateway);
-        // 部分常州工学院 Wi-Fi 使用 26.0.0.1 作为 DHCP 网关，AC 门户仍在 172.19.0.1。
-        if ("26.0.0.1".equals(gateway)) out.add("172.19.0.1");
+        // DHCP 网关可能是路由器地址，并不一定就是认证门户；此校园网的门户固定为 172.19.0.1。
+        if (!out.contains(CAMPUS_PORTAL_HOST)) out.add(CAMPUS_PORTAL_HOST);
         return out;
     }
 
