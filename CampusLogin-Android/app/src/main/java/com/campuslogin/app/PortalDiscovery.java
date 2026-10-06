@@ -33,9 +33,9 @@ public final class PortalDiscovery {
 
     private static List<String> candidates(String gateway) {
         ArrayList<String> out = new ArrayList<>();
-        if (gateway != null && !gateway.isEmpty()) out.add(gateway);
-        // DHCP 网关可能是路由器地址，并不一定就是认证门户；此校园网的门户固定为 172.19.0.1。
-        if (!out.contains(CAMPUS_PORTAL_HOST)) out.add(CAMPUS_PORTAL_HOST);
+        // Only probe the confirmed portal for this school; a random gateway can
+        // expose another institution's Dr.COM endpoint and must not receive credentials.
+        out.add(CAMPUS_PORTAL_HOST);
         return out;
     }
 

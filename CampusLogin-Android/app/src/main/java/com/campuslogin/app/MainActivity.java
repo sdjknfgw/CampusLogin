@@ -40,11 +40,8 @@ public class MainActivity extends Activity {
     private TextView tvState, tvAccount, tvInfo, tvSuffixHint, tvEngineState, tvLog, tvNetworkProfile;
     private Button btnStart, btnStop;
 
-    private static final int REQUEST_PORTAL_BROWSER = 410;
-
     private final Handler ui = new Handler(Looper.getMainLooper());
     private boolean suppressSpinner = false;
-    private String promptedNetworkKey = "";
 
     private final Runnable poll = new Runnable() {
         @Override
@@ -106,6 +103,8 @@ public class MainActivity extends Activity {
         });
 
         loadConfigToUi();
+        Prefs.Config saved = Prefs.load(this);
+        if (saved.autoLogin && !saved.account.isEmpty() && !saved.password.isEmpty()) LoginService.start(this);
 
         findViewById(R.id.btnSave).setOnClickListener(v -> onSave());
         btnStart.setOnClickListener(v -> LoginService.start(this));
@@ -180,12 +179,12 @@ public class MainActivity extends Activity {
     }
 
     private void showWhatsNewOnce() {
-        final String version = "1.0.7";
+        final String version = "1.0.8";
         String reportRevision = version + "-20261006";
         String seen = getSharedPreferences("settings", MODE_PRIVATE).getString("whatsNewVersion", "");
         if (reportRevision.equals(seen)) return;
         new AlertDialog.Builder(this, android.R.style.Theme_Material_Light_Dialog_Alert).setTitle("已更新至 v" + version)
-                .setMessage("• 修复密码本地明文存储，使用 Android Keystore 加密\n• 提升账号匹配准确性并改善隐私保护")
+                .setMessage("• 换校园网后自动复用已保存门户和账号\n• 自动引擎在启动应用后恢复，不再要求手动选择网络档案")
                 .setNegativeButton("联系作者", (d, w) -> toast("产品制作者：陈成睿"))
                 .setPositiveButton("知道了", (d, w) -> { })
                 .show();
@@ -194,14 +193,13 @@ public class MainActivity extends Activity {
 
     /**
      * Android does not expose another browser's HTTPS requests or page title to an app.
-     * The discovery flow opens the campus portal in the user's browser and, while the
-     * two-minute session is active, performs read-only Dr.COM status checks against the
-     * current Wi-Fi gateway and the known campus portal. It never reads browser data.
+     * Portal discovery probes known Dr.COM status endpoints directly. It does not
+     * open the portal in a browser or inspect browser content.
      */
     private void showPortalDiscoveryIntro() {
         new AlertDialog.Builder(this)
                 .setTitle("自动检测校园网门户")
-                .setMessage("接下来会打开浏览器。请在学校校园网页面正常登录一次。\n\n检测只持续 2 分钟，只验证当前 Wi-Fi 网络是否能找到校园网门户；不会读取或保存浏览器页面内容。")
+                .setMessage("应用会在后台检测当前网络中的校园网认证接口，不会打开登录网页，也不会读取浏览器内容。发现学校门户后会自动保存；之后换校园网也会使用已保存的账号登录。")
                 .setNegativeButton("取消", null)
                 .setPositiveButton("开始检测", (d, w) -> beginPortalDiscovery())
                 .show();
@@ -220,25 +218,11 @@ public class MainActivity extends Activity {
             button.setEnabled(true);
             button.setText("自动检测校园网门户");
             if (result == null || !isValidHost(result)) {
-                new AlertDialog.Builder(this).setTitle("未找到校园网门户")
-                        .setMessage("请确认已在手机浏览器中完成学校校园网登录，再重新检测。")
-                        .setPositiveButton("重新检测", (d, w) -> beginPortalDiscovery())
-                        .setNegativeButton("保留原门户", null).show();
+                toast("暂未发现学校门户，后台仍会使用已保存的门户地址重试");
                 return;
             }
-            new AlertDialog.Builder(this).setTitle("发现校园网门户")
-                    .setMessage("已发现校园网门户：" + result + "\n\n是否使用此门户进行自动登录？")
-                    .setPositiveButton("使用此门户", (d, w) -> acceptDiscoveredPortal(result))
-                    .setNegativeButton("保留原门户", null)
-                    .setNeutralButton("重新检测", (d, w) -> beginPortalDiscovery()).show();
+            acceptDiscoveredPortal(result);
         }));
-        try {
-            String browserHost = "172.19.0.1";
-            Intent browser = new Intent(Intent.ACTION_VIEW, Uri.parse("http://" + browserHost + "/"));
-            startActivityForResult(browser, REQUEST_PORTAL_BROWSER);
-        } catch (Exception e) {
-            toast("无法打开浏览器，请手动打开校园网登录页");
-        }
     }
 
     private void acceptDiscoveredPortal(String host) {
@@ -250,6 +234,7 @@ public class MainActivity extends Activity {
         Prefs.pushLog(this, "info", "已采用自动发现的校园网门户：" + host);
         toast("已使用校园网门户");
         refreshStatus();
+        if (LoginService.isRunning()) LoginService.triggerNow(this);
     }
 
     // ---- 配置 ----
@@ -294,6 +279,7 @@ public class MainActivity extends Activity {
         toast("配置已保存");
         refreshStatus();
         if (LoginService.isRunning()) LoginService.triggerNow(this);
+        else LoginService.start(this);
     }
 
     private void updatePrefs(java.util.function.Consumer<Prefs.Config> fn) {
@@ -333,7 +319,6 @@ public class MainActivity extends Activity {
     // ---- 状态轮询 ----
     private void refreshStatus() {
         updateNetworkLabel();
-        maybePromptNetworkProfile();
         boolean running = LoginService.isRunning();
         tvEngineState.setText(running ? "引擎运行中" : "引擎未运行");
         tvEngineState.setTextColor(running ? getCol(R.color.ok) : getCol(R.color.muted));
@@ -396,45 +381,6 @@ public class MainActivity extends Activity {
         Prefs.NetworkInfo net = Prefs.currentNetwork(this);
         tvNetworkProfile.setText("当前网络 · 网关 " + (net.gateway.isEmpty() ? "未知" : net.gateway)
                 + (net.ssid.isEmpty() ? "" : " · Wi-Fi " + net.ssid));
-    }
-
-    private void maybePromptNetworkProfile() {
-        if (isFinishing()) return;
-        Prefs.NetworkInfo net = Prefs.currentNetwork(this);
-        if (net.gateway.isEmpty() && net.ssid.isEmpty()) return;
-        String key = net.key();
-        if (key.equals(promptedNetworkKey)) return;
-        org.json.JSONArray candidates = Prefs.portalCandidates(this);
-        String selected = Prefs.selectedPortalHost(this);
-        if (candidates.length() > 1 && selected.isEmpty()) {
-            promptedNetworkKey = key;
-            String[] labels = new String[candidates.length()];
-            for (int i = 0; i < candidates.length(); i++) {
-                org.json.JSONObject p = candidates.optJSONObject(i);
-                labels[i] = p == null ? "门户" : p.optString("ssid", "校园网") + " · " + p.optString("host");
-            }
-            new AlertDialog.Builder(this).setTitle("选择当前校园网门户")
-                    .setItems(labels, (dialog, which) -> {
-                        Prefs.selectPortalProfile(this, candidates.optJSONObject(which));
-                        etPortalHost.setText(Prefs.selectedPortalHost(this));
-                        promptedNetworkKey = "";
-                        LoginService.triggerNow(this);
-                        toast("已选择当前门户");
-                    }).setOnCancelListener(d -> toast("尚未选择门户，自动登录暂停")).show();
-        } else if (candidates.length() == 0 && Prefs.hasPortalProfiles(this)) {
-            promptedNetworkKey = key;
-            EditText input = new EditText(this);
-            input.setSingleLine(true);
-            input.setHint("门户 IP，例如 10.0.0.1");
-            new AlertDialog.Builder(this).setTitle("发现新网络")
-                    .setMessage("输入此校园网的门户 IP，保存后会按当前网关和 Wi-Fi 自动识别。")
-                    .setView(input).setPositiveButton("保存网络", (d, which) -> {
-                        String host = input.getText().toString().trim();
-                        if (!isValidHost(host)) { promptedNetworkKey = ""; toast("门户 IP 无效"); return; }
-                        etPortalHost.setText(host);
-                        onSave();
-                    }).setNegativeButton("稍后", (d, which) -> { }).show();
-        }
     }
 
     private static boolean isValidHost(String host) {

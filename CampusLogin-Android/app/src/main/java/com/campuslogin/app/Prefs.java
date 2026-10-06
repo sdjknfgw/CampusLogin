@@ -201,18 +201,11 @@ public class Prefs {
     }
 
     public static String selectedPortalHost(Context c) {
-        JSONArray candidates = portalCandidates(c);
-        SharedPreferences p = sp(c);
-        if (candidates.length() == 1) return candidates.optJSONObject(0).optString("host", "");
-        if (candidates.length() > 1) {
-            String selected = p.getString("selectedPortalProfile", "");
-            for (int i = 0; i < candidates.length(); i++) {
-                JSONObject item = candidates.optJSONObject(i);
-                if (item != null && selected.equals(item.optString("id"))) return item.optString("host", "");
-            }
-            return "";
-        }
-        return p.getString("portalProfiles", "[]").equals("[]") ? load(c).portalHost : "";
+        // CampusLogin stores one set of credentials for this school. Reuse the
+        // last confirmed portal across Wi-Fi networks instead of requiring a
+        // profile match or selection every time the network changes.
+        String global = load(c).portalHost;
+        return global == null ? "" : global;
     }
 
     public static String editorPortalHost(Context c) {

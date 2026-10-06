@@ -130,9 +130,9 @@ public class PortalEngine {
             String networkKey = Prefs.currentNetwork(ctx).key();
             if (!networkKey.equals(notifiedPortalKey)) {
                 notifiedPortalKey = networkKey;
-                notifyUser("需要选择校园网门户", "打开应用选择已有档案，或为新网络添加门户 IP");
+                notifyUser("未设置校园网门户", "打开应用检测或填写学校提供的门户 IP");
             }
-            setState("offline", account, "", "", 0, "当前网络门户未匹配或存在冲突，请打开应用选择");
+            setState("offline", account, "", "", 0, "尚未设置校园网门户");
             schedule(BACKOFF_SEQ[Math.min(backoffIdx, BACKOFF_SEQ.length - 1)]);
             return;
         }
@@ -156,9 +156,9 @@ public class PortalEngine {
             String uid = probe.uid == null ? "" : probe.uid;
             if (!uid.isEmpty() && !uid.equalsIgnoreCase(account)) {
                 String base = s.account;
-                if (uid.toLowerCase().startsWith(base.toLowerCase())) {
-                    String learned = uid.substring(base.length());
-                    Prefs.setLearned(ctx, learned, uid);
+                if (accountsMatch(uid, account, base)) {
+                    String learned = learnedSuffix(uid, base);
+                    if (!learned.isEmpty()) Prefs.setLearned(ctx, learned, uid);
                     account = Prefs.fullAccount(ctx);
                 } else {
                     // 别的账号在线（含本机其他账号）
@@ -221,6 +221,20 @@ public class PortalEngine {
 
         setState("offline", account, "", probe.ip, 0, "登录失败: " + msg);
         schedule(BACKOFF_SEQ[Math.min(backoffIdx++, BACKOFF_SEQ.length - 1)]);
+    }
+
+    private boolean accountsMatch(String observed, String expected, String base) {
+        String uid = observed.toLowerCase(java.util.Locale.ROOT);
+        String full = expected.toLowerCase(java.util.Locale.ROOT);
+        if (uid.equals(full)) return true;
+        return !learnedSuffix(observed, base).isEmpty() && Prefs.load(ctx).carrierId.equals("auto");
+    }
+
+    private String learnedSuffix(String observed, String base) {
+        if (observed == null || base == null || observed.length() <= base.length()
+                || !observed.regionMatches(true, 0, base, 0, base.length())) return "";
+        String suffix = observed.substring(base.length());
+        return suffix.matches("@[A-Za-z0-9._-]+") ? suffix : "";
     }
 
     private static String nowTime() {
