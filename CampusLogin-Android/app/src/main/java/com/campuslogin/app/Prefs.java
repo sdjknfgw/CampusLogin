@@ -10,8 +10,20 @@ import android.net.DhcpInfo;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
+import android.security.keystore.KeyGenParameterSpec;
+import android.security.keystore.KeyProperties;
+import android.util.Base64;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.security.KeyStore;
+import javax.crypto.Cipher;
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.GCMParameterSpec;
 
 public class Prefs {
+    private static final String PASSWORD_KEY = "password_enc_v1";
+    private static final String KEY_ALIAS = "CampusLoginPassword";
     // 运营商选项（与 PC 端 CARRIER_OPTIONS 一致 + 校内实测补充 @cmcc）
     public static final String[][] CARRIER_OPTIONS = {
             { "auto",   "自动检测（从在线账号学习）" },
@@ -42,7 +54,16 @@ public class Prefs {
         SharedPreferences p = sp(c);
         Config s = new Config();
         s.account = p.getString("account", "");
-        s.password = p.getString("password", "");
+        String encrypted = p.getString(PASSWORD_KEY, "");
+        if (!encrypted.isEmpty()) {
+            try { s.password = decryptPassword(encrypted); } catch (Exception ignored) { s.password = ""; }
+        } else {
+            String legacy = p.getString("password", "");
+            if (!legacy.isEmpty()) {
+                try { p.edit().putString(PASSWORD_KEY, encryptPassword(legacy)).remove("password").apply(); s.password = legacy; }
+                catch (Exception ignored) { s.password = ""; }
+            }
+        }
         s.portalHost = p.getString("portalHost", "172.19.0.1");
         s.carrierId = p.getString("carrierId", "campus");
         s.customSuffix = p.getString("customSuffix", "");
@@ -54,17 +75,43 @@ public class Prefs {
     }
 
     public static void save(Context c, Config s) {
-        sp(c).edit()
+        SharedPreferences.Editor edit = sp(c).edit()
                 .putString("account", s.account)
-                .putString("password", s.password)
                 .putString("portalHost", s.portalHost)
                 .putString("carrierId", s.carrierId)
                 .putString("customSuffix", s.customSuffix)
                 .putBoolean("autoLogin", s.autoLogin)
                 .putBoolean("bootStart", s.bootStart)
                 .putString("learnedSuffix", s.learnedSuffix)
-                .putString("learnedAccount", s.learnedAccount)
-                .apply();
+                .putString("learnedAccount", s.learnedAccount);
+        try {
+            if (s.password == null || s.password.isEmpty()) edit.remove(PASSWORD_KEY);
+            else edit.putString(PASSWORD_KEY, encryptPassword(s.password));
+        } catch (Exception e) { throw new IllegalStateException("无法安全保存密码", e); }
+        edit.remove("password").apply();
+    }
+
+    private static SecretKey passwordKey() throws Exception {
+        KeyStore store = KeyStore.getInstance("AndroidKeyStore"); store.load(null);
+        java.security.Key existing = store.getKey(KEY_ALIAS, null);
+        if (existing instanceof SecretKey) return (SecretKey) existing;
+        KeyGenerator generator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore");
+        generator.init(new KeyGenParameterSpec.Builder(KEY_ALIAS, KeyProperties.PURPOSE_ENCRYPT | KeyProperties.PURPOSE_DECRYPT)
+                .setBlockModes(KeyProperties.BLOCK_MODE_GCM).setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE).build());
+        return generator.generateKey();
+    }
+    private static String encryptPassword(String password) throws Exception {
+        Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding"); cipher.init(Cipher.ENCRYPT_MODE, passwordKey());
+        byte[] iv = cipher.getIV(), ciphertext = cipher.doFinal(password.getBytes(StandardCharsets.UTF_8));
+        ByteBuffer payload = ByteBuffer.allocate(1 + iv.length + ciphertext.length); payload.put((byte) iv.length).put(iv).put(ciphertext);
+        return Base64.encodeToString(payload.array(), Base64.NO_WRAP);
+    }
+    private static String decryptPassword(String encoded) throws Exception {
+        ByteBuffer buffer = ByteBuffer.wrap(Base64.decode(encoded, Base64.NO_WRAP)); int ivLength = buffer.get() & 0xff;
+        if (ivLength == 0 || ivLength > 32 || buffer.remaining() <= ivLength) throw new IllegalArgumentException("Bad password payload");
+        byte[] iv = new byte[ivLength]; buffer.get(iv); byte[] ciphertext = new byte[buffer.remaining()]; buffer.get(ciphertext);
+        Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding"); cipher.init(Cipher.DECRYPT_MODE, passwordKey(), new GCMParameterSpec(128, iv));
+        return new String(cipher.doFinal(ciphertext), StandardCharsets.UTF_8);
     }
 
     public static class NetworkInfo {

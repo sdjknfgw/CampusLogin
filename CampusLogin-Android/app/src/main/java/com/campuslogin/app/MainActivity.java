@@ -134,14 +134,14 @@ public class MainActivity extends Activity {
                 + "1. 连接学校网络\n"
                 + "先连接学校校园 Wi-Fi。首次配置时关闭 VPN、代理，并保持手机连接该 Wi-Fi。\n\n"
                 + "2. 检测认证门户\n"
-                + "点击“自动检测校园网门户”，在打开的浏览器中进入学校官方认证页并正常登录一次。返回应用等待检测完成，确认发现的门户后选择“使用此门户”。本版本固定检测 172.19.0.1；DHCP 网关不同也不影响。\n\n"
+                + "点击“自动检测校园网门户”，在打开的浏览器中进入学校官方认证页并正常登录一次。返回应用等待检测完成，确认发现的门户后选择“使用此门户”。如果未发现门户，请查看运行日志或联系学校网络管理员。\n\n"
                 + "3. 填写账号并选运营商\n"
                 + "输入校园网账号和密码，按学校认证页选择运营商/账号后缀。不确定时先在官方页面确认账号格式。\n\n"
                 + "4. 测试并保存\n"
                 + "点击“保存配置”。如果需要确认账号可用，可在官方门户先手动登录，再返回应用。\n\n"
                 + "5. 启动自动登录\n"
                 + "点击“启动”开启状态检测和断线重连。日常需要时可点“立即登录”；“注销”会主动下线。建议在系统设置里关闭本应用的电池优化，并允许后台活动。\n\n"
-                + "遇到问题：确认仍连接校园 Wi-Fi、关闭 VPN/代理，检查账号和运营商后缀，并查看运行日志。门户打不开时可在浏览器手动访问 http://172.19.0.1/。账号密码保存在本机；应用不会读取浏览器页面内容。";
+                + "遇到问题：确认仍连接校园 Wi-Fi、关闭 VPN/代理，检查账号和运营商后缀，并查看运行日志。门户地址可向学校网络管理员确认。账号密码加密保存在本机；应用不会读取浏览器页面内容。";
         LinearLayout guideBody = new LinearLayout(this);
         guideBody.setOrientation(LinearLayout.VERTICAL);
         guideBody.setPadding(22, 8, 22, 8);
@@ -180,12 +180,12 @@ public class MainActivity extends Activity {
     }
 
     private void showWhatsNewOnce() {
-        final String version = "1.0.6";
+        final String version = "1.0.7";
         String reportRevision = version + "-20261006";
         String seen = getSharedPreferences("settings", MODE_PRIVATE).getString("whatsNewVersion", "");
         if (reportRevision.equals(seen)) return;
         new AlertDialog.Builder(this, android.R.style.Theme_Material_Light_Dialog_Alert).setTitle("已更新至 v" + version)
-                .setMessage("• 自动检测固定认证门户 172.19.0.1，不再误把 DHCP 网关当作门户\n• 支持 DHCP 网关与认证门户地址不同的网络")
+                .setMessage("• 修复密码本地明文存储，使用 Android Keystore 加密\n• 提升账号匹配准确性并改善隐私保护")
                 .setNegativeButton("联系作者", (d, w) -> toast("产品制作者：陈成睿"))
                 .setPositiveButton("知道了", (d, w) -> { })
                 .show();
@@ -201,7 +201,7 @@ public class MainActivity extends Activity {
     private void showPortalDiscoveryIntro() {
         new AlertDialog.Builder(this)
                 .setTitle("自动检测校园网门户")
-                .setMessage("接下来会打开浏览器。请在“常州工学院”校园网页面正常登录一次。\n\n检测只持续 2 分钟，只验证当前 Wi-Fi 网关是否为校园网门户；不会读取、保存或上传网页内容、账号或密码。")
+                .setMessage("接下来会打开浏览器。请在学校校园网页面正常登录一次。\n\n检测只持续 2 分钟，只验证当前 Wi-Fi 网络是否能找到校园网门户；不会读取或保存浏览器页面内容。")
                 .setNegativeButton("取消", null)
                 .setPositiveButton("开始检测", (d, w) -> beginPortalDiscovery())
                 .show();
@@ -221,7 +221,7 @@ public class MainActivity extends Activity {
             button.setText("自动检测校园网门户");
             if (result == null || !isValidHost(result)) {
                 new AlertDialog.Builder(this).setTitle("未找到校园网门户")
-                        .setMessage("请确认已在手机浏览器中完成常州工学院校园网登录，再重新检测。")
+                        .setMessage("请确认已在手机浏览器中完成学校校园网登录，再重新检测。")
                         .setPositiveButton("重新检测", (d, w) -> beginPortalDiscovery())
                         .setNegativeButton("保留原门户", null).show();
                 return;
@@ -283,8 +283,13 @@ public class MainActivity extends Activity {
         s.portalHost = portalHost;
         s.carrierId = CARRIER_IDS[spCarrier.getSelectedItemPosition()];
         s.customSuffix = etCustomSuffix.getText().toString().trim();
-        Prefs.save(this, s);
-        Prefs.savePortalProfile(this, portalHost);
+        try {
+            Prefs.save(this, s);
+            Prefs.savePortalProfile(this, portalHost);
+        } catch (RuntimeException e) {
+            toast("密码加密保存失败，请重试；原有配置未覆盖");
+            return;
+        }
         Prefs.pushLog(this, "info", "配置已保存（账号 " + Prefs.fullAccount(this) + "）");
         toast("配置已保存");
         refreshStatus();

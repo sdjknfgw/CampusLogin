@@ -59,7 +59,8 @@ function templatize(params, creds) {
     let val = v;
     if (ACCOUNT_KEYS.includes(lk) && creds.account && (v === creds.account || v === creds.full || v.startsWith(creds.account))) {
       val = v === creds.full ? '{{account}}' : '{{account}}' + v.slice(creds.account.length);
-    } else if (PASSWORD_KEYS.includes(lk) && creds.password && v === creds.password) {
+    } else if (PASSWORD_KEYS.includes(lk)) {
+      // 密码字段无论当前凭据是否已保存，都必须脱敏；否则首次向导可能把明文写入档案。
       val = '{{password}}';
     } else if (lk === 'wlan_user_ip' && /^\d+\.\d+\.\d+\.\d+$/.test(v)) {
       val = '{{localIp}}';

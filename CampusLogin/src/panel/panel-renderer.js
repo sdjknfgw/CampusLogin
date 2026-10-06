@@ -275,8 +275,7 @@ $('btnTest').addEventListener('click', () => withBusy($('btnTest'), async () => 
   const r = await window.campus.testLogin(cfg);
   if (r.ok) {
     toast(r.msg || '登录成功', 'ok');
-    $('password').value = '';
-    $('password').placeholder = '已验证 · 请点击「保存并启用」';
+    $('password').placeholder = '已验证 · 如需保存新密码请点击「保存并启用」';
     if (r.uid) $('suffixHint').innerHTML = `✓ 已验证账号: <b>${escapeHtml(r.uid)}</b>`;
   } else {
     toast('失败: ' + (r.msg || '未知错误'), 'err');

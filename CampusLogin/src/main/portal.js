@@ -213,7 +213,7 @@ async function cycle(reason) {
     // uid 后缀自动学习（auto 模式核心）
     if (probe.uid && probe.uid !== account) {
       const base = s.credentials.account;
-      if (probe.uid.toLowerCase().startsWith(base.toLowerCase())) {
+      if (settings.accountsMatch(probe.uid, account)) {
         const learned = probe.uid.slice(base.length);
         if (learned !== s.credentials.learnedSuffix) {
           s.credentials.learnedSuffix = learned;
@@ -223,7 +223,7 @@ async function cycle(reason) {
         }
       }
       // 别的账号在线
-      if (!probe.uid.toLowerCase().startsWith(base.toLowerCase())) {
+      if (!settings.accountsMatch(probe.uid, account)) {
         settings.pushLog('warn', `检测到其他账号在线: ${probe.uid}，本软件不动作`);
         setState('error', { reason: 'other-account', otherUid: probe.uid });
         return;

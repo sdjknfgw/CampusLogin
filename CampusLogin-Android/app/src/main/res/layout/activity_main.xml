@@ -180,7 +180,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="5dp"
-                android:text="不知道 IP？点击自动检测，再在浏览器中登录常州工学院校园网即可。"
+                android:text="不知道 IP？点击自动检测，再在浏览器中登录学校校园网即可。"
                 android:textColor="@color/muted"
                 android:textSize="11sp" />
 
@@ -376,7 +376,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center"
-            android:text="产品制作者：陈成睿 · v1.0.6"
+            android:text="产品制作者：陈成睿 · v1.0.7"
             android:textColor="@color/muted"
             android:textSize="10sp" />
 

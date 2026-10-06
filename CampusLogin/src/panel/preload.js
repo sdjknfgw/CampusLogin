@@ -8,7 +8,7 @@ contextBridge.exposeInMainWorld('campus', {
   testLogin: (cfg) => ipcRenderer.invoke('test-login', cfg),
   manualLogin: () => ipcRenderer.invoke('manual-login'),
   forceReauth: () => ipcRenderer.invoke('force-reauth'),
-  setAutoStart: (on) => ipcRenderer.invoke('set-autostart'),
+  setAutoStart: (on) => ipcRenderer.invoke('set-autostart', !!on),
   openPortal: () => ipcRenderer.invoke('open-portal'),
   checkUpdates: () => ipcRenderer.invoke('check-updates'),
   openReleasePage: (url) => ipcRenderer.invoke('open-release-page', url),

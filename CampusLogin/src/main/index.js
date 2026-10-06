@@ -342,11 +342,7 @@ ipcMain.handle('test-login', async (_e, cfg) => {
   const probe = await portal.chkstatus(profile);
   if (!probe.reachable) return { ok: false, msg: '门户不可达，请确认已连接校园网 WiFi' };
   // 同一账号视为已在线（后缀可能由内核补全，如 26250102 vs 26250102@cmcc）
-  const sameAccount = probe.online && (
-    probe.uid.toLowerCase() === full.toLowerCase() ||
-    probe.uid.toLowerCase().startsWith(full.toLowerCase()) ||
-    full.toLowerCase().startsWith(probe.uid.toLowerCase())
-  );
+  const sameAccount = probe.online && settings.accountsMatch(probe.uid, full);
   if (sameAccount) {
     // 已在线：顺便学习后缀（auto 模式首次配置即可用）
     const s = settings.load();

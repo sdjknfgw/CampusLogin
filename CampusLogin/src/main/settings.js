@@ -56,6 +56,20 @@ function load() {
     cache = defaults();
   }
   migrate(cache);
+  let scrubbedCredential = false;
+  const passwordKeys = new Set(['upass', 'user_password', 'password', 'pass', 'pwd', 'passwd']);
+  for (const profile of cache.profiles || []) {
+    for (const [key, params] of Object.entries({ login: profile.login && profile.login.rawParams })) {
+      if (!Array.isArray(params)) continue;
+      for (const pair of params) {
+        if (Array.isArray(pair) && passwordKeys.has(String(pair[0]).toLowerCase()) && pair[1] !== '{{password}}') {
+          pair[1] = '{{password}}';
+          scrubbedCredential = true;
+        }
+      }
+    }
+  }
+  if (scrubbedCredential) save();
   return cache;
 }
 
@@ -193,6 +207,20 @@ function fullAccount() {
   return account.toLowerCase().endsWith(suffix.toLowerCase()) ? account : account + suffix;
 }
 
+function accountsMatch(left, right) {
+  const a = String(left || '').toLowerCase();
+  const b = String(right || '').toLowerCase();
+  if (a === b) return true;
+  const c = load().credentials;
+  const known = [resolveSuffix(), c.learnedSuffix, ...CARRIER_OPTIONS.map(x => x.suffix)]
+    .filter(x => typeof x === 'string' && x.length > 0)
+    .map(x => x.toLowerCase());
+  return known.some(suffix =>
+    (a.endsWith(suffix) && a.slice(0, -suffix.length) === b) ||
+    (b.endsWith(suffix) && b.slice(0, -suffix.length) === a)
+  );
+}
+
 // ---- 档案操作 ----
 function listProfiles() { return load().profiles; }
 
@@ -273,7 +301,7 @@ function setAutoStart(on) {
 
 module.exports = {
   load, save, setPassword, getPassword,
-  resolveSuffix, fullAccount, pushLog, setAutoStart,
+  resolveSuffix, fullAccount, accountsMatch, pushLog, setAutoStart,
   CARRIER_OPTIONS, settingsPath,
   // 档案 API
   listProfiles, getProfile, getActiveProfileId, setActiveProfileId, upsertProfile, deleteProfile,
