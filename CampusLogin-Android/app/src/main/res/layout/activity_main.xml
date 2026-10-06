@@ -42,6 +42,17 @@
             android:text="引擎未运行" />
 
         <Button
+            android:id="@+id/btnGuide"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/btn_primary"
+            android:text="新手先看"
+            android:textColor="@color/btn_text_dark"
+            android:textSize="12sp" />
+
+        <Button
             android:id="@+id/btnCheckUpdates"
             android:layout_width="wrap_content"
             android:layout_height="40dp"

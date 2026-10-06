@@ -21,6 +21,7 @@ import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ScrollView;
+import android.widget.LinearLayout;
 import android.view.Gravity;
 import android.graphics.drawable.ColorDrawable;
 
@@ -112,6 +113,7 @@ public class MainActivity extends Activity {
         findViewById(R.id.btnLoginNow).setOnClickListener(v -> onLoginNow());
         findViewById(R.id.btnLogout).setOnClickListener(v -> onLogout());
         findViewById(R.id.btnCheckUpdates).setOnClickListener(v -> checkForUpdates());
+        findViewById(R.id.btnGuide).setOnClickListener(v -> showBeginnerGuide());
         findViewById(R.id.btnDiscoverPortal).setOnClickListener(v -> showPortalDiscoveryIntro());
 
         swAutoLogin.setOnCheckedChangeListener((b, on) -> updatePrefs(s -> s.autoLogin = on));
@@ -124,6 +126,56 @@ public class MainActivity extends Activity {
             permissions.add(Manifest.permission.ACCESS_FINE_LOCATION);
         if (!permissions.isEmpty()) requestPermissions(permissions.toArray(new String[0]), 1);
         showWhatsNewOnce();
+    }
+
+    private void showBeginnerGuide() {
+        String guide = "使用流程\n"
+                + "① 连接校园 Wi-Fi  →  ② 检测门户  →  ③ 填账号  →  ④ 测试并保存  →  ⑤ 启动自动登录\n\n"
+                + "1. 连接学校网络\n"
+                + "先连接学校校园 Wi-Fi。首次配置时关闭 VPN、代理，并保持手机连接该 Wi-Fi。\n\n"
+                + "2. 检测认证门户\n"
+                + "点击“自动检测校园网门户”，在打开的浏览器中进入学校官方认证页并正常登录一次。返回应用等待检测完成，确认发现的门户后选择“使用此门户”。本版本固定检测 172.19.0.1；DHCP 网关不同也不影响。\n\n"
+                + "3. 填写账号并选运营商\n"
+                + "输入校园网账号和密码，按学校认证页选择运营商/账号后缀。不确定时先在官方页面确认账号格式。\n\n"
+                + "4. 测试并保存\n"
+                + "点击“保存配置”。如果需要确认账号可用，可在官方门户先手动登录，再返回应用。\n\n"
+                + "5. 启动自动登录\n"
+                + "点击“启动”开启状态检测和断线重连。日常需要时可点“立即登录”；“注销”会主动下线。建议在系统设置里关闭本应用的电池优化，并允许后台活动。\n\n"
+                + "遇到问题：确认仍连接校园 Wi-Fi、关闭 VPN/代理，检查账号和运营商后缀，并查看运行日志。门户打不开时可在浏览器手动访问 http://172.19.0.1/。账号密码保存在本机；应用不会读取浏览器页面内容。";
+        LinearLayout guideBody = new LinearLayout(this);
+        guideBody.setOrientation(LinearLayout.VERTICAL);
+        guideBody.setPadding(22, 8, 22, 8);
+        String[] flowSteps = {"① 连接校园 Wi-Fi", "② 检测认证门户", "③ 填写账号与运营商", "④ 保存配置", "⑤ 启动自动登录"};
+        for (int i = 0; i < flowSteps.length; i++) {
+            TextView step = new TextView(this);
+            step.setText(flowSteps[i]);
+            step.setGravity(Gravity.CENTER);
+            step.setTextColor(getResources().getColor(R.color.text, getTheme()));
+            step.setTextSize(14);
+            step.setTypeface(null, android.graphics.Typeface.BOLD);
+            step.setPadding(12, 10, 12, 10);
+            step.setBackgroundResource(R.drawable.bg_card);
+            guideBody.addView(step, new LinearLayout.LayoutParams(-1, -2));
+            if (i < flowSteps.length - 1) {
+                TextView arrow = new TextView(this);
+                arrow.setText("↓");
+                arrow.setGravity(Gravity.CENTER);
+                arrow.setTextColor(getResources().getColor(R.color.accent, getTheme()));
+                arrow.setTextSize(18);
+                guideBody.addView(arrow, new LinearLayout.LayoutParams(-1, -2));
+            }
+        }
+        TextView content = new TextView(this);
+        content.setText(guide);
+        content.setTextColor(getResources().getColor(R.color.text, getTheme()));
+        content.setTextSize(14);
+        content.setLineSpacing(4, 1f);
+        content.setPadding(0, 16, 0, 8);
+        guideBody.addView(content, new LinearLayout.LayoutParams(-1, -2));
+        ScrollView scroll = new ScrollView(this);
+        scroll.addView(guideBody);
+        new AlertDialog.Builder(this).setTitle("新手先看 · 使用流程")
+                .setView(scroll).setPositiveButton("我知道了", null).show();
     }
 
     private void showWhatsNewOnce() {

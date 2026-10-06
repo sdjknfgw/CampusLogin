@@ -177,6 +177,19 @@
   .update-actions button { padding:9px 12px; border-radius:9px; cursor:pointer; }
   .update-close { border:1px solid var(--stroke); background:#f3f5f0; color:var(--text); }
   .update-open { border:0; background:#246b57; color:#fff; font-weight:700; }
+  .guide-overlay { position:fixed; inset:0; z-index:30; display:none; align-items:center; justify-content:center; padding:18px; background:rgba(13,27,21,.56); }
+  .guide-overlay.show { display:flex; }
+  .guide-dialog { width:min(620px,100%); max-height:88vh; overflow:auto; padding:24px; border:1px solid var(--stroke); border-radius:18px; background:#fffefa; box-shadow:0 18px 60px rgba(20,40,28,.24); color:var(--text); }
+  .guide-dialog h2 { font-size:21px; margin-bottom:5px; }
+  .guide-lead { color:var(--dim); font-size:13px; margin-bottom:16px; }
+  .guide-flow { display:grid; grid-template-columns:repeat(5,1fr); gap:6px; margin:16px 0 20px; }
+  .guide-step { position:relative; text-align:center; padding:12px 5px; border-radius:11px; background:#eaf2ec; color:#246b57; font-size:11px; font-weight:700; }
+  .guide-step:not(:last-child)::after { content:'›'; position:absolute; right:-8px; top:50%; transform:translateY(-50%); z-index:1; color:#b57922; font-size:20px; }
+  .guide-section { margin-top:15px; }
+  .guide-section h3 { margin-bottom:6px; color:#246b57; font-size:14px; }
+  .guide-section p { margin:4px 0; color:#46564e; font-size:12px; line-height:1.65; }
+  .guide-actions { display:flex; justify-content:flex-end; margin-top:18px; }
+  .guide-actions button { padding:9px 16px; border:0; border-radius:9px; background:#246b57; color:#fff; font-weight:700; cursor:pointer; }
   .footer { color:var(--dim); text-align:center; font-size:10px; padding:2px 0 4px; }
 </style>
 </head>
@@ -186,6 +199,7 @@
     <div class="title">CampusLogin<small>校园网自动认证</small></div>
     <div class="spacer"></div>
     <button class="persona" id="persona" title="点击切换表情" aria-label="互动人偶"><img alt="鲸鱼娘助手" draggable="false"></button>
+    <button class="winbtn" id="btnGuide" title="新手操作指南" style="width:auto;padding:0 9px;font-size:10px;">新手先看</button>
     <button class="winbtn" id="btnUpdate" title="检查软件更新" style="width:auto;padding:0 9px;font-size:10px;">检查更新</button>
     <button class="winbtn" id="btnMin">─</button>
     <button class="winbtn" id="btnClose">✕</button>
@@ -263,10 +277,25 @@
       </div>
       <div class="logbox" id="logbox"></div>
     </div>
-    <div class="footer">产品制作者：陈成睿 · v1.0.5</div>
+    <div class="footer">产品制作者：陈成睿 · v1.0.6</div>
   </div>
 
   <div class="toast" id="toast"></div>
+  <div class="guide-overlay" id="guideModal" role="dialog" aria-modal="true" aria-labelledby="guideTitle">
+    <section class="guide-dialog">
+      <h2 id="guideTitle">新手先看 · 3 分钟完成配置</h2>
+      <p class="guide-lead">按顺序走一遍即可；首次登录时需要你在学校官方认证页手动完成一次。</p>
+      <div class="guide-flow" aria-label="使用流程：连接校园网，识别门户，填写账号，测试并保存，启动自动重连">
+        <div class="guide-step">① 连接<br>校园网</div><div class="guide-step">② 识别<br>门户</div><div class="guide-step">③ 填写<br>账号</div><div class="guide-step">④ 测试<br>并保存</div><div class="guide-step">⑤ 启动<br>自动重连</div>
+      </div>
+      <div class="guide-section"><h3>1. 先连上学校网络</h3><p>电脑连接校园 Wi‑Fi 或校园网网线。首次配置时先关闭 VPN、代理和其他会改写网络的工具。</p></div>
+      <div class="guide-section"><h3>2. 识别这个网络的认证门户</h3><p>点击“新网络登录向导（自动抓包）”，在弹出的学校官方页面正常登录一次。软件据此学习门户协议并建立网络档案；不同学校或不同认证网络需要分别建档。</p><p>如果自动检测不到，可在“手动门户地址”输入学校提供的门户 IP（本项目常用 172.19.0.1），再点“用此地址”。不要把 DHCP 默认网关误当成门户地址。</p></div>
+      <div class="guide-section"><h3>3. 填写账号并选运营商</h3><p>输入校园网账号和密码。按学校认证页选择校园、电信、联通、移动或自定义后缀；不确定时先在官方页面确认账号格式。</p></div>
+      <div class="guide-section"><h3>4. 测试、保存、启用</h3><p>点“测试登录”确认账号可用，再点“保存并启用”。开启“断线自动重连”；需要开机后运行时再开启“开机自启”。</p></div>
+      <div class="guide-section"><h3>5. 日常操作与排查</h3><p>状态显示“已认证”表示成功；“立即登录”可手动重试，“注销”会主动下线。失败时先确认连的是正确校园网、账号格式/运营商正确，并查看运行日志。门户不可达时重新连接 Wi‑Fi 或核对门户档案。</p><p>密码保存在本机；软件只向认证门户发送认证和状态请求，不读取官方页面内容。后台重连受系统电源策略影响，建议不要限制本软件后台运行。</p></div>
+      <div class="guide-actions"><button id="btnGuideClose">我知道了</button></div>
+    </section>
+  </div>
   <div class="update-overlay" id="updateModal" role="dialog" aria-modal="true" aria-labelledby="updateTitle">
     <section class="update-dialog">
       <h2 id="updateTitle">发现新版本</h2>

@@ -249,6 +249,11 @@ $('btnUpdate').addEventListener('click', () => withBusy($('btnUpdate'), async ()
 }));
 
 $('btnUpdateClose').addEventListener('click', () => $('updateModal').classList.remove('show'));
+$('btnGuide').addEventListener('click', () => $('guideModal').classList.add('show'));
+$('btnGuideClose').addEventListener('click', () => $('guideModal').classList.remove('show'));
+$('guideModal').addEventListener('click', (event) => {
+  if (event.target === $('guideModal')) $('guideModal').classList.remove('show');
+});
 $('updateModal').addEventListener('click', (event) => {
   if (event.target === $('updateModal')) $('updateModal').classList.remove('show');
 });
